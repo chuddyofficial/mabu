@@ -76,8 +76,13 @@ def hr(char="-", width=60):
     print(char * width)
 
 
-def step(n, total, label):
-    print(f"\n[{n}/{total}] {label}")
+MABU_INSTALLER_STAGES = ["ENVIRONMENT", "DEPENDENCIES", "VAULT", "SECURITY", "ADMIN", "DEPLOYMENT", "COMPLETE"]
+
+
+def stage(n, label=None):
+    name = label or MABU_INSTALLER_STAGES[n - 1]
+    print(f"\n[{n}/{len(MABU_INSTALLER_STAGES)}] {name}")
+    print("-" * 60)
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +182,8 @@ server {{
     listen 80;
     server_name {domain};
 
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'" always;
+
     location / {{
         root {base_dir};
         index index.html;
@@ -201,11 +208,41 @@ After=network.target
 [Service]
 Type=simple
 User={service_user}
+Group={service_user}
 WorkingDirectory={base_dir}/api
 Environment=PATH={base_dir}/venv/bin
 Environment=MABU_PUBLIC_ORIGIN=https://{domain}
 ExecStart={base_dir}/venv/bin/python mabu-server.py
 Restart=on-failure
+RestartSec=3
+
+# --- Sandboxing: MABU only needs to read its own install dir and read/write
+# config/ and vault/ inside it. Everything else on the filesystem, and most
+# kernel attack surface, is denied even if the app process is compromised.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={base_dir}/config {base_dir}/vault
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+
+# --- Resource limits: a personal research tool has no legitimate reason to
+# spawn hundreds of processes or use unbounded memory; caps here just bound
+# the blast radius of a bug or an attempted resource-exhaustion attack.
+# MemoryMax is generous (attachments are held as base64 in memory during
+# report generation/case decrypt — a case with many 8MB attachments can add
+# up) but still finite.
+LimitNOFILE=4096
+TasksMax=128
+MemoryMax=1536M
 
 [Install]
 WantedBy=multi-user.target
@@ -308,16 +345,19 @@ def main():
     args = parser.parse_args()
 
     print(BANNER)
+
+    # [1] ENVIRONMENT
+    stage(1)
     env = detect_environment()
-    print(f"Detected: {env['system']}, Python {env['python_version']}"
-          + (", likely VPS/headless" if env["likely_vps"] else ""))
+    print(f"  Platform:  {env['system']}")
+    print(f"  Python:    {env['python_version']}")
+    if env["likely_vps"]:
+        print("  Context:   likely VPS/headless (no desktop session detected)")
     if env["is_root"]:
-        print("WARNING: running as root. MABU (and the systemd service) should run as a dedicated non-root user in production.")
+        print("  WARNING: running as root. MABU (and the systemd service) should run as a dedicated non-root user in production.")
 
-    total_steps = 6
-
-    # 1. Dependencies
-    step(1, total_steps, "Checking Python dependencies")
+    # [2] DEPENDENCIES
+    stage(2)
     if args.skip_deps:
         print("  Skipped (--skip-deps).")
     else:
@@ -341,41 +381,60 @@ def main():
     import mabu_auth
     import mabu_format as fmt
 
-    # 2. Vault directory
-    step(2, total_steps, "Preparing vault directory")
+    # [3] VAULT
+    stage(3)
     os.makedirs(fmt.vault_dir(), exist_ok=True)
-    print(f"  Ready: {fmt.vault_dir()}")
+    print(f"  Vault directory ready: {fmt.vault_dir()}")
+    if os.path.isdir(fmt.vault_dir()):
+        existing_cases = len([f for f in os.listdir(fmt.vault_dir()) if f.endswith(".mabu")])
+        print(f"  Existing case files:   {existing_cases}")
 
-    # 3. Vault encryption key
-    step(3, total_steps, "Vault encryption key")
+    # [4] SECURITY (vault encryption key + session secret)
+    stage(4)
     if args.reset_vault_key and os.path.exists(fmt.default_key_path()):
-        if not args.non_interactive:
-            confirmed = prompt_yes_no(
-                "  This will make existing default-key-encrypted .mabu files unreadable. Continue?",
-                default=False,
-            )
-            if not confirmed:
-                print("  Aborted key reset.")
-                sys.exit(1)
+        if args.non_interactive:
+            print("  ERROR: --reset-vault-key requires interactive confirmation and cannot be combined")
+            print("  with --non-interactive. This is a destructive, irreversible operation — re-run")
+            print("  without --non-interactive to confirm, or omit --reset-vault-key.")
+            sys.exit(1)
+        print("  WARNING: this will permanently replace the vault encryption key.")
+        print("  Any existing .mabu file encrypted with the CURRENT default key (i.e. saved")
+        print("  without a custom passphrase) will become permanently undecryptable.")
+        print("  Passphrase-protected files are not affected.")
+        confirmed = prompt_yes_no("  Continue?", default=False)
+        if not confirmed:
+            print("  Aborted key reset.")
+            sys.exit(1)
         os.remove(fmt.default_key_path())
         print("  Existing vault key removed.")
     if os.path.exists(fmt.default_key_path()):
-        print("  Vault key already exists — keeping it.")
+        print("  Vault encryption key already exists — keeping it.")
     else:
         fmt.get_default_key()
         print("  Generated new vault encryption key.")
 
-    # 4. Session secret
-    step(4, total_steps, "Session signing secret")
     mabu_auth.get_or_create_session_secret()
-    print("  Ready.")
+    print("  Session signing secret ready.")
 
-    # 5. Admin account
-    step(5, total_steps, "Admin account")
+    # [5] ADMIN
+    stage(5)
     if mabu_auth.is_configured() and not args.reset_admin:
         print(f"  Already configured (username: {mabu_auth.get_admin_username()}).")
         print("  Re-run with --reset-admin to replace it.")
     else:
+        if mabu_auth.is_configured() and args.reset_admin:
+            print("  WARNING: --reset-admin creates a NEW admin account alongside any existing")
+            print("  accounts. It does not delete other users. If you're trying to recover access")
+            print("  because you forgot a password, use this to create a fresh admin login instead.")
+            if args.non_interactive:
+                if not (args.username and args.password_env):
+                    print("  ERROR: --reset-admin --non-interactive requires --username and --password-env.")
+                    sys.exit(1)
+            else:
+                if not prompt_yes_no("  Continue creating a new admin account?", default=False):
+                    print("  Aborted.")
+                    sys.exit(1)
+
         username = args.username
         if not username:
             if args.non_interactive:
@@ -399,8 +458,8 @@ def main():
         mabu_auth.create_admin(username, password)
         print(f"  Admin account created for '{username}'.")
 
-    # 6. Domain / deployment config
-    step(6, total_steps, "Public domain (optional)")
+    # [6] DEPLOYMENT (public domain / nginx / systemd config — optional)
+    stage(6)
     if args.domain is not None:
         if args.domain == "":
             if os.path.isfile(DOMAIN_FILE):
@@ -431,6 +490,8 @@ def main():
     else:
         print("  Skipped (--non-interactive without --domain).")
 
+    # [7] COMPLETE
+    stage(7)
     print_summary(env)
 
     print("\nNext steps:")

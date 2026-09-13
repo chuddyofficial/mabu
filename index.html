@@ -8,35 +8,66 @@
 </head>
 <body>
 
+<a href="#mabuMainContent" class="mabu-skip-link">skip to content</a>
+
 <div class="mabu-scanlines"></div>
 <div class="mabu-noise"></div>
+
+<!-- TOAST / NOTIFICATION STACK -->
+<div class="mabu-toast-stack" id="mabuToastStack" role="status" aria-live="polite"></div>
 
 <!-- BOOT SEQUENCE -->
 <div class="mabu-boot" id="mabuBoot">
   <pre class="mabu-boot-log" id="mabuBootLog"></pre>
   <div class="mabu-boot-bar"><div class="mabu-boot-bar-fill" id="mabuBootFill"></div></div>
+  <button class="mabu-boot-skip" id="mabuBootSkip" type="button">skip boot sequence</button>
 </div>
 
 <!-- LOGIN GATE -->
 <div class="mabu-login-screen" id="mabuLoginScreen" hidden>
   <div class="mabu-login-box">
-    <div class="mabu-logo" style="margin: 0 auto 14px auto;">M</div>
+    <div class="mabu-logo" style="margin: 0 auto 14px auto;" aria-hidden="true">M</div>
     <h2 class="mabu-login-title">MABU<span class="mabu-cursor">_</span></h2>
-    <p class="mabu-login-sub">authenticate to continue</p>
+    <p class="mabu-login-sub">private research workstation :: security gate</p>
 
     <div class="mabu-field">
-      <label>username</label>
+      <label for="loginUsername">username</label>
       <input type="text" id="loginUsername" autocomplete="username">
     </div>
     <div class="mabu-field">
-      <label>password</label>
+      <label for="loginPassword">password</label>
       <input type="password" id="loginPassword" autocomplete="current-password">
     </div>
-    <button class="mabu-btn" id="loginBtn" style="width:100%;">login()</button>
-    <p class="mabu-login-error" id="loginError"></p>
+    <button class="mabu-btn" id="loginBtn" style="width:100%;">authenticate()</button>
+    <p class="mabu-login-error" id="loginError" role="alert"></p>
     <p class="mabu-login-setup-hint" id="loginSetupHint" hidden>
       no admin account exists yet. run <code>python setup.py</code> on the server first.
     </p>
+  </div>
+</div>
+
+<!-- MODAL HOST (confirmations) -->
+<div class="mabu-modal-overlay" id="mabuModalOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="mabuModalTitle">
+  <div class="mabu-modal" id="mabuModal">
+    <h3 id="mabuModalTitle"></h3>
+    <p id="mabuModalBody"></p>
+    <div class="mabu-modal-actions">
+      <button class="mabu-btn mabu-btn-secondary" id="mabuModalCancel">cancel</button>
+      <button class="mabu-btn" id="mabuModalConfirm">confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div class="mabu-cmdk-overlay" id="mabuCmdkOverlay" hidden role="dialog" aria-modal="true" aria-label="Command palette">
+  <div class="mabu-cmdk">
+    <input type="text" class="mabu-cmdk-input" id="mabuCmdkInput" placeholder="Type a command or search…" autocomplete="off">
+    <div class="mabu-cmdk-list" id="mabuCmdkList"></div>
+    <div class="mabu-cmdk-footer">
+      <span>&uarr;&darr; navigate</span>
+      <span>&crarr; select</span>
+      <span>esc close</span>
+    </div>
   </div>
 </div>
 
@@ -97,11 +128,16 @@
       <button class="mabu-nav-item" data-view="admin" id="adminNavBtn" hidden>
         <span class="mabu-nav-icon">[12]</span> users &amp; audit
       </button>
+
+      <div class="mabu-nav-group">system</div>
+      <button class="mabu-nav-item" data-view="settings">
+        <span class="mabu-nav-icon">[13]</span> settings
+      </button>
     </nav>
 
     <div class="mabu-sidebar-footer">
       <div class="mabu-status">
-        <span class="mabu-status-dot" id="apiStatusDot"></span>
+        <span class="mabu-status-dot" id="apiStatusDot" aria-hidden="true"></span>
         <span id="apiStatusText">checking api...</span>
       </div>
       <div class="mabu-status">
@@ -109,7 +145,7 @@
         <button class="mabu-btn-danger" id="logoutBtn" style="margin-left:auto;">logout</button>
       </div>
       <div class="mabu-clock" id="mabuClock">--:--:--</div>
-      <span class="mabu-version">MABU v3.0 :: CASE MGMT + CORRELATION</span>
+      <span class="mabu-version" id="mabuVersionTag">MABU v2.1 :: RESEARCH WORKSTATION</span>
     </div>
   </aside>
 
@@ -119,11 +155,19 @@
     <header class="mabu-topbar">
       <h1><span class="mabu-prompt">$</span> <span id="viewTitle">overview</span><span class="mabu-cursor">_</span></h1>
       <div class="mabu-topbar-right">
-        <span class="mabu-badge">100% LOCAL // ZERO EXTERNAL CALLS</span>
+        <button class="mabu-icon-btn mabu-icon-btn-wide" id="cmdkTriggerBtn" type="button" title="Command palette (Ctrl+K)" aria-label="Open command palette">
+          &gt;_ <span style="opacity:.6; font-size:10px; margin-left:4px;">Ctrl+K</span>
+        </button>
+        <button class="mabu-icon-btn" id="notifBtn" type="button" title="Notifications" aria-label="Notifications" aria-haspopup="true">
+          !
+        </button>
+        <button class="mabu-icon-btn" id="settingsBtn" type="button" title="Settings" aria-label="Settings">
+          #
+        </button>
       </div>
     </header>
 
-    <div class="mabu-content">
+    <div class="mabu-content" id="mabuMainContent">
 
       <!-- OVERVIEW -->
       <section class="mabu-view active" id="view-home">
@@ -183,7 +227,7 @@
           <div class="mabu-card">
             <h3>&gt; email --analyze</h3>
             <div class="mabu-field">
-              <label>target_email</label>
+              <label for="emailInput">target_email</label>
               <input type="text" id="emailInput" placeholder="target@example.com">
             </div>
             <button class="mabu-btn" id="emailAnalyzeBtn">run_analysis()</button>
@@ -210,10 +254,10 @@
               </select>
               <button class="mabu-btn" id="platformAddBtn">add</button>
             </div>
-            <table class="mabu-table" id="platformTable">
+            <div class="mabu-table-wrap"><table class="mabu-table" id="platformTable">
               <thead><tr><th>platform</th><th>status</th><th></th></tr></thead>
               <tbody></tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </section>
@@ -224,16 +268,16 @@
           <div class="mabu-card">
             <h3>&gt; username --target</h3>
             <div class="mabu-field">
-              <label>handle</label>
+              <label for="unameInput">handle</label>
               <input type="text" id="unameInput" placeholder="e.g. j0hndoe">
             </div>
             <button class="mabu-btn" id="unameGenBtn">generate_matrix()</button>
             <p class="mabu-note">Generates direct search-URLs per platform (opens manually, no auto-querying) and tracks confirmed/unconfirmed status locally.</p>
 
-            <table class="mabu-table" id="unameMatrixTable">
+            <div class="mabu-table-wrap"><table class="mabu-table" id="unameMatrixTable">
               <thead><tr><th>platform</th><th>link</th><th>status</th></tr></thead>
               <tbody></tbody>
-            </table>
+            </table></div>
           </div>
 
           <div class="mabu-card">
@@ -257,10 +301,10 @@
               <input type="text" id="discordUserSource" placeholder="source / where observed">
               <button class="mabu-btn" id="discordUserAddBtn">add</button>
             </div>
-            <table class="mabu-table" id="discordUserTable">
+            <div class="mabu-table-wrap"><table class="mabu-table" id="discordUserTable">
               <thead><tr><th>username</th><th>source</th><th></th></tr></thead>
               <tbody></tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </section>
@@ -271,7 +315,7 @@
           <div class="mabu-card">
             <h3>&gt; snowflake --decode</h3>
             <div class="mabu-field">
-              <label>discord_snowflake_id</label>
+              <label for="snowflakeInput">discord_snowflake_id</label>
               <input type="text" id="snowflakeInput" placeholder="e.g. 175928847299117063">
             </div>
             <button class="mabu-btn" id="snowflakeBtn">decode()</button>
@@ -310,7 +354,7 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-card">
             <h3>&gt; ip --classify</h3>
             <div class="mabu-field">
-              <label>ip_address</label>
+              <label for="ipInput">ip_address</label>
               <input type="text" id="ipInput" placeholder="e.g. 192.168.1.1 or 2001:db8::1">
             </div>
             <button class="mabu-btn" id="ipClassifyBtn">classify()</button>
@@ -328,7 +372,7 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-card">
             <h3>&gt; cidr --calc</h3>
             <div class="mabu-field">
-              <label>cidr_notation</label>
+              <label for="cidrInput">cidr_notation</label>
               <input type="text" id="cidrInput" placeholder="e.g. 192.168.1.0/24">
             </div>
             <button class="mabu-btn" id="cidrCalcBtn">calculate()</button>
@@ -346,10 +390,10 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-card mabu-grid-span-2">
             <h3>&gt; ports.ref</h3>
             <p class="mabu-note">Common port reference table (educational).</p>
-            <table class="mabu-table" id="portsTable">
+            <div class="mabu-table-wrap"><table class="mabu-table" id="portsTable">
               <thead><tr><th>port</th><th>protocol</th><th>service</th></tr></thead>
               <tbody></tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       </section>
@@ -360,7 +404,7 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-card">
             <h3>&gt; hash --generate</h3>
             <div class="mabu-field">
-              <label>input_text</label>
+              <label for="hashInput">input_text</label>
               <textarea id="hashInput" rows="3" placeholder="text to hash"></textarea>
             </div>
             <button class="mabu-btn" id="hashGenBtn">compute()</button>
@@ -375,7 +419,7 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-card">
             <h3>&gt; base64 / url --codec</h3>
             <div class="mabu-field">
-              <label>input</label>
+              <label for="codecInput">input</label>
               <textarea id="codecInput" rows="3" placeholder="text or encoded string"></textarea>
             </div>
             <div class="mabu-actions">
@@ -385,7 +429,7 @@ increment  =  snowflake & 0xFFF</pre>
               <button class="mabu-btn" id="urlDecodeBtn">url_decode()</button>
             </div>
             <div class="mabu-field" style="margin-top:14px;">
-              <label>output</label>
+              <label for="codecOutput">output</label>
               <textarea id="codecOutput" rows="3" readonly placeholder="result appears here"></textarea>
             </div>
           </div>
@@ -393,7 +437,7 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-card mabu-grid-span-2">
             <h3>&gt; jwt --decode</h3>
             <div class="mabu-field">
-              <label>jwt_token</label>
+              <label for="jwtInput">jwt_token</label>
               <input type="text" id="jwtInput" placeholder="eyJhbGciOi...">
             </div>
             <button class="mabu-btn" id="jwtDecodeBtn">decode()</button>
@@ -418,67 +462,69 @@ increment  =  snowflake & 0xFFF</pre>
           <p class="mabu-note">Document only publicly available information you have lawful access to. Creates a new case (with this as its first entry) in the local vault. Add more entries to the same case later from the Vault tab.</p>
 
           <div class="mabu-field">
-            <label>template</label>
+            <label for="rTemplate">template</label>
             <select id="rTemplate"><option value="blank">Blank case</option></select>
           </div>
+          <div class="mabu-result-box" id="rTemplatePreview" hidden></div>
 
-          <div id="rRelatedWarning" class="mabu-result-box" hidden style="border-color: var(--mabu-amber);">
-            <div class="mabu-kv"><span>[!] possible match</span><b>this identifier appears in existing case(s)</b></div>
+          <div id="rRelatedWarning" class="mabu-connection-card" hidden>
+            <div class="mabu-connection-title">potential connection detected</div>
+            <p class="mabu-note" style="margin:4px 0 8px 0;">One or more identifiers you've entered already appear in existing case(s). This is a shared identifier, not confirmation that these cases involve the same person.</p>
             <div id="rRelatedList"></div>
           </div>
 
           <div class="mabu-grid mabu-grid-2">
             <div class="mabu-field">
-              <label>case_title</label>
+              <label for="rTitle">case_title</label>
               <input type="text" id="rTitle" placeholder="e.g. Case-0142">
             </div>
             <div class="mabu-field">
-              <label>investigator</label>
+              <label for="rInvestigator">investigator</label>
               <input type="text" id="rInvestigator" placeholder="your name / handle">
             </div>
             <div class="mabu-field">
-              <label>email(s)</label>
+              <label for="rEmail">email(s)</label>
               <input type="text" id="rEmail" placeholder="public/known emails, comma separated">
             </div>
             <div class="mabu-field">
-              <label>phone(s)</label>
+              <label for="rPhone">phone(s)</label>
               <input type="text" id="rPhone" placeholder="from public directories, comma separated">
             </div>
             <div class="mabu-field">
-              <label>username(s)</label>
+              <label for="rUsername">username(s)</label>
               <input type="text" id="rUsername" placeholder="public platform handles, comma separated">
             </div>
             <div class="mabu-field">
-              <label>name(s) / alias(es)</label>
+              <label for="rNames">name(s) / alias(es)</label>
               <input type="text" id="rNames" placeholder="from public sources, comma separated">
             </div>
             <div class="mabu-field">
-              <label>ip address(es)</label>
+              <label for="rIp">ip address(es)</label>
               <input type="text" id="rIp" placeholder="public logs / server data, comma separated">
             </div>
             <div class="mabu-field">
-              <label>tags</label>
+              <label for="rTags">tags</label>
               <input type="text" id="rTags" placeholder="comma separated, e.g. phishing, discord">
             </div>
           </div>
 
           <div class="mabu-field">
-            <label>summary</label>
+            <label for="rSummary">summary</label>
             <input type="text" id="rSummary" placeholder="one-line summary of this finding">
           </div>
 
           <div class="mabu-field">
-            <label>findings / notes</label>
+            <label for="rFindings">findings / notes</label>
             <textarea id="rFindings" rows="6" placeholder="detailed observations..."></textarea>
           </div>
 
           <div class="mabu-field">
-            <label>source urls / references (one per line)</label>
+            <label for="rSources">source urls / references (one per line)</label>
             <textarea id="rSources" rows="3" placeholder="https://..."></textarea>
           </div>
 
           <div class="mabu-field">
-            <label>vault passphrase (optional — leave blank for default vault key)</label>
+            <label for="rPassphrase">vault passphrase (optional — leave blank for default vault key)</label>
             <input type="password" id="rPassphrase" placeholder="passphrase to encrypt this file">
           </div>
 
@@ -510,17 +556,32 @@ increment  =  snowflake & 0xFFF</pre>
             </select>
             <button class="mabu-btn mabu-btn-secondary" id="vaultFilterBtn">apply_filters()</button>
           </div>
-          <table class="mabu-table" id="vaultTable">
+          <div class="mabu-table-wrap"><table class="mabu-table" id="vaultTable">
             <thead><tr><th>title</th><th>status</th><th>entries</th><th>updated</th><th>investigator</th><th>tags</th><th></th></tr></thead>
             <tbody></tbody>
-          </table>
+          </table></div>
+          <div class="mabu-actions" id="vaultPagination" style="margin-top:10px; justify-content:space-between;" hidden>
+            <span class="mabu-note" id="vaultPageInfo"></span>
+            <div class="mabu-actions">
+              <button class="mabu-btn mabu-btn-secondary" id="vaultPagePrev">&larr; prev</button>
+              <button class="mabu-btn mabu-btn-secondary" id="vaultPageNext">next &rarr;</button>
+            </div>
+          </div>
         </div>
 
         <div class="mabu-card" style="margin-top:18px;" id="caseDetailCard" hidden>
-          <div class="mabu-vault-header">
-            <h3>&gt; case_detail: <span id="caseDetailTitle"></span></h3>
+          <div class="mabu-case-header">
+            <div class="mabu-case-title-group">
+              <h2 id="caseDetailTitle">case</h2>
+              <div class="mabu-case-meta">
+                <span>ID: <b id="caseMetaId">–</b></span>
+                <span>investigator: <b id="caseMetaInvestigator">–</b></span>
+                <span>created: <b id="caseMetaCreated">–</b></span>
+                <span>updated: <b id="caseMetaUpdated">–</b></span>
+              </div>
+            </div>
             <div class="mabu-actions">
-              <select id="caseStatusSelect">
+              <select id="caseStatusSelect" aria-label="case status">
                 <option value="open">open</option>
                 <option value="closed">closed</option>
                 <option value="cold">cold</option>
@@ -530,43 +591,98 @@ increment  =  snowflake & 0xFFF</pre>
             </div>
           </div>
 
-          <div class="mabu-field-row">
-            <input type="text" id="caseTagsInput" placeholder="tags, comma separated">
-            <button class="mabu-btn mabu-btn-secondary" id="caseTagsApplyBtn">update_tags()</button>
+          <div class="mabu-tabs" role="tablist">
+            <button class="mabu-tab active" data-case-tab="overview" role="tab">Overview</button>
+            <button class="mabu-tab" data-case-tab="entries" role="tab">Entries</button>
+            <button class="mabu-tab" data-case-tab="identifiers" role="tab">Identifiers</button>
+            <button class="mabu-tab" data-case-tab="attachments" role="tab">Attachments</button>
+            <button class="mabu-tab" data-case-tab="activity" role="tab">Activity</button>
+            <button class="mabu-tab" data-case-tab="report" role="tab">Report</button>
           </div>
 
-          <div id="caseDetailBody"></div>
+          <!-- OVERVIEW TAB -->
+          <div class="mabu-tab-panel active" id="caseTab-overview" role="tabpanel">
+            <div class="mabu-field-row">
+              <input type="text" id="caseTagsInput" placeholder="tags, comma separated">
+              <button class="mabu-btn mabu-btn-secondary" id="caseTagsApplyBtn">update_tags()</button>
+            </div>
+            <div id="caseOverviewBody"></div>
+          </div>
 
-          <h4 class="mabu-subhead" style="margin-top:18px;">add new entry</h4>
-          <div class="mabu-grid mabu-grid-2">
+          <!-- ENTRIES TAB -->
+          <div class="mabu-tab-panel" id="caseTab-entries" role="tabpanel">
+            <div id="caseEntriesBody"></div>
+
+            <h4 class="mabu-subhead" style="margin-top:18px;">add new entry</h4>
+
+            <h4 class="mabu-subhead">event information</h4>
+            <div class="mabu-grid mabu-grid-2">
+              <div class="mabu-field">
+                <label for="ceAuthor">author</label>
+                <input type="text" id="ceAuthor" placeholder="your name / handle">
+              </div>
+            </div>
+
+            <h4 class="mabu-subhead">identifiers</h4>
+            <div class="mabu-grid mabu-grid-2">
+              <div class="mabu-field">
+                <label for="ceEmails">email(s)</label>
+                <input type="text" id="ceEmails" placeholder="comma separated">
+              </div>
+              <div class="mabu-field">
+                <label for="ceUsernames">username(s)</label>
+                <input type="text" id="ceUsernames" placeholder="comma separated">
+              </div>
+            </div>
+            <div class="mabu-grid mabu-grid-2">
+              <div class="mabu-field">
+                <label for="ceIps">ip address(es)</label>
+                <input type="text" id="ceIps" placeholder="comma separated">
+              </div>
+            </div>
+
+            <h4 class="mabu-subhead">analysis</h4>
             <div class="mabu-field">
-              <label>author</label>
-              <input type="text" id="ceAuthor" placeholder="your name / handle">
+              <label for="ceSummary">summary</label>
+              <input type="text" id="ceSummary" placeholder="one-line summary">
             </div>
             <div class="mabu-field">
-              <label>emails / usernames / ips (comma separated each)</label>
-              <input type="text" id="ceEmails" placeholder="emails">
+              <label for="ceFindings">findings</label>
+              <textarea id="ceFindings" rows="4" placeholder="detailed observations..."></textarea>
+            </div>
+
+            <h4 class="mabu-subhead">attachments</h4>
+            <div class="mabu-field">
+              <label for="ceAttachments">attachments (screenshots, docs — max 8MB each, 10 per entry)</label>
+              <input type="file" id="ceAttachments" multiple>
+            </div>
+
+            <div class="mabu-actions">
+              <button class="mabu-btn" id="ceAddBtn">add_entry()</button>
+              <span class="mabu-save-status" id="ceStatus"></span>
             </div>
           </div>
-          <div class="mabu-grid mabu-grid-2">
-            <input type="text" id="ceUsernames" placeholder="usernames">
-            <input type="text" id="ceIps" placeholder="ip addresses">
+
+          <!-- IDENTIFIERS TAB -->
+          <div class="mabu-tab-panel" id="caseTab-identifiers" role="tabpanel">
+            <p class="mabu-note">Identifiers aggregated across all entries in this case. Removing an identifier here does not delete it from historical entries — edit the source entry to change what's recorded.</p>
+            <div id="caseIdentifiersBody"></div>
           </div>
-          <div class="mabu-field">
-            <label>summary</label>
-            <input type="text" id="ceSummary" placeholder="one-line summary">
+
+          <!-- ATTACHMENTS TAB -->
+          <div class="mabu-tab-panel" id="caseTab-attachments" role="tabpanel">
+            <div id="caseAttachmentsBody"></div>
           </div>
-          <div class="mabu-field">
-            <label>findings</label>
-            <textarea id="ceFindings" rows="4" placeholder="detailed observations..."></textarea>
+
+          <!-- ACTIVITY TAB -->
+          <div class="mabu-tab-panel" id="caseTab-activity" role="tabpanel">
+            <div id="caseActivityBody"></div>
           </div>
-          <div class="mabu-field">
-            <label>attachments (screenshots, docs — max 8MB each)</label>
-            <input type="file" id="ceAttachments" multiple>
-          </div>
-          <div class="mabu-actions">
-            <button class="mabu-btn" id="ceAddBtn">add_entry()</button>
-            <span class="mabu-save-status" id="ceStatus"></span>
+
+          <!-- REPORT TAB -->
+          <div class="mabu-tab-panel" id="caseTab-report" role="tabpanel">
+            <p class="mabu-note">Generates a PDF report covering case metadata, aggregated identifiers, all entries, and the full activity log. Factual entry content and the activity log are kept visually separate from any analyst summary you've written in Findings.</p>
+            <button class="mabu-btn" id="caseReportBtnTab">download_pdf_report()</button>
           </div>
         </div>
       </section>
@@ -578,15 +694,36 @@ increment  =  snowflake & 0xFFF</pre>
             <h3>&gt; correlate --scan</h3>
             <button class="mabu-btn mabu-btn-secondary" id="correlateRefreshBtn">scan_vault()</button>
           </div>
-          <p class="mabu-note">Scans every decryptable case in the vault and auto-links cases sharing an email, username, IP, phone, or name. Clusters below represent likely-same-person groups.</p>
+          <p class="mabu-note">Scans every decryptable case in the vault for identifiers (email/username/IP/phone/name) that appear in more than one case. A shared identifier is a <b>potential connection</b>, not proof the cases involve the same person — always verify independently before treating a correlation as confirmed.</p>
+          <div id="correlateSummary"></div>
           <div id="correlateClusters"></div>
         </div>
 
         <div class="mabu-card" style="margin-top:18px;">
           <h3>&gt; correlation_graph.svg</h3>
+          <div class="mabu-graph-toolbar">
+            <select id="correlateIdFilter" aria-label="filter graph by identifier type">
+              <option value="">all identifier types</option>
+              <option value="emails">emails only</option>
+              <option value="usernames">usernames only</option>
+              <option value="ips">ips only</option>
+              <option value="phones">phones only</option>
+              <option value="names">names only</option>
+            </select>
+            <button class="mabu-icon-btn" id="correlateZoomIn" type="button" title="zoom in" aria-label="zoom in">+</button>
+            <button class="mabu-icon-btn" id="correlateZoomOut" type="button" title="zoom out" aria-label="zoom out">-</button>
+            <button class="mabu-icon-btn mabu-icon-btn-wide" id="correlateZoomReset" type="button">reset</button>
+            <button class="mabu-icon-btn mabu-icon-btn-wide" id="correlateZoomFit" type="button">fit</button>
+          </div>
+          <div class="mabu-graph-legend">
+            <span class="mabu-graph-legend-item"><span class="mabu-graph-legend-swatch" style="background:var(--mabu-green);"></span> case</span>
+            <span class="mabu-graph-legend-item"><span class="mabu-graph-legend-swatch" style="background:var(--mabu-cyan);"></span> selected</span>
+            <span class="mabu-graph-legend-item">— line = shared identifier</span>
+          </div>
           <div class="mabu-graph-wrap">
             <svg id="correlateGraphSvg" class="mabu-graph-svg"></svg>
           </div>
+          <div class="mabu-graph-panel" id="correlatePanel" hidden></div>
         </div>
       </section>
 
@@ -594,9 +731,10 @@ increment  =  snowflake & 0xFFF</pre>
       <section class="mabu-view" id="view-lookups">
         <div class="mabu-grid mabu-grid-2">
           <div class="mabu-card">
-            <h3>&gt; whois --lookup</h3>
+            <h3>&gt; whois --lookup <span class="mabu-provenance" data-kind="source">public infra</span></h3>
+            <p class="mabu-note">Queries the domain's own WHOIS server directly.</p>
             <div class="mabu-field">
-              <label>domain</label>
+              <label for="whoisInput">domain</label>
               <input type="text" id="whoisInput" placeholder="example.com">
             </div>
             <button class="mabu-btn" id="whoisBtn">run_whois()</button>
@@ -604,9 +742,10 @@ increment  =  snowflake & 0xFFF</pre>
           </div>
 
           <div class="mabu-card">
-            <h3>&gt; dns --lookup</h3>
+            <h3>&gt; dns --lookup <span class="mabu-provenance" data-kind="source">public infra</span></h3>
+            <p class="mabu-note">Queries public DNS resolvers directly for this domain's records.</p>
             <div class="mabu-field">
-              <label>domain</label>
+              <label for="dnsInput">domain</label>
               <input type="text" id="dnsInput" placeholder="example.com">
             </div>
             <button class="mabu-btn" id="dnsBtn">run_dns()</button>
@@ -614,35 +753,35 @@ increment  =  snowflake & 0xFFF</pre>
           </div>
 
           <div class="mabu-card mabu-grid-span-2">
-            <h3>&gt; handle --check-live</h3>
-            <p class="mabu-note">Sends a real HTTP request to each platform's own profile URL (same as visiting it in a browser) to check whether the page exists. No third-party aggregators are queried.</p>
+            <h3>&gt; handle --check-live <span class="mabu-provenance" data-kind="source">public infra</span></h3>
+            <p class="mabu-note">Sends a real HTTP request to each platform's own profile URL (same as visiting it in a browser) to check whether the page exists. No third-party aggregators are queried. "Likely exists" reflects an HTTP status code, not confirmed account ownership.</p>
             <div class="mabu-field">
-              <label>username</label>
+              <label for="handleCheckInput">username</label>
               <input type="text" id="handleCheckInput" placeholder="e.g. j0hndoe">
             </div>
             <button class="mabu-btn" id="handleCheckBtn">check_live()</button>
-            <table class="mabu-table" id="handleCheckTable" hidden>
-              <thead><tr><th>platform</th><th>url</th><th>likely exists</th><th>detail</th></tr></thead>
+            <div class="mabu-table-wrap"><table class="mabu-table" id="handleCheckTable" hidden>
+              <thead><tr><th>platform</th><th>profile url</th><th>http status</th><th>likely exists</th><th>checked at</th></tr></thead>
               <tbody></tbody>
-            </table>
+            </table></div>
           </div>
 
           <div class="mabu-card">
-            <h3>&gt; phone --lookup</h3>
-            <p class="mabu-note">Local parsing via libphonenumber — no external API. Region/carrier data comes from bundled offline databases.</p>
+            <h3>&gt; phone --analyze <span class="mabu-provenance" data-kind="analyst">local only</span></h3>
+            <p class="mabu-note">Local parsing via libphonenumber — no external API, no network request. Region/timezone come from bundled offline data; this cannot identify a carrier, owner, or current subscriber.</p>
             <div class="mabu-field-row">
               <input type="text" id="phoneInput" placeholder="+14155552671">
               <input type="text" id="phoneRegion" placeholder="region (e.g. US)" style="max-width:110px;" value="US">
             </div>
-            <button class="mabu-btn" id="phoneLookupBtn">run_lookup()</button>
+            <button class="mabu-btn" id="phoneLookupBtn">analyze()</button>
             <div class="mabu-result-box" id="phoneResult" hidden></div>
           </div>
 
           <div class="mabu-card">
-            <h3>&gt; breach --check</h3>
+            <h3>&gt; breach --check <span class="mabu-provenance" data-kind="source">external api</span></h3>
             <p class="mabu-note" id="breachStatusNote">checking configuration...</p>
             <div class="mabu-field">
-              <label>email</label>
+              <label for="breachInput">email</label>
               <input type="text" id="breachInput" placeholder="target@example.com">
             </div>
             <button class="mabu-btn" id="breachCheckBtn">check_hibp()</button>
@@ -650,10 +789,10 @@ increment  =  snowflake & 0xFFF</pre>
           </div>
 
           <div class="mabu-card mabu-grid-span-2">
-            <h3>&gt; image --metadata</h3>
-            <p class="mabu-note">Extracts EXIF data (camera info, timestamps, embedded GPS coordinates) from an image file, entirely locally — nothing is uploaded anywhere else.</p>
+            <h3>&gt; image --metadata <span class="mabu-provenance" data-kind="analyst">local only</span></h3>
+            <p class="mabu-note">Extracts EXIF data (camera info, timestamps, embedded GPS coordinates) from an image file, entirely locally — the image is never uploaded or transmitted anywhere else.</p>
             <div class="mabu-field">
-              <label>select image</label>
+              <label for="imageMetaInput">select image</label>
               <input type="file" id="imageMetaInput" accept="image/*">
             </div>
             <button class="mabu-btn" id="imageMetaBtn">extract_metadata()</button>
@@ -668,11 +807,11 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-card">
             <h3>&gt; reader --decrypt</h3>
             <div class="mabu-field">
-              <label>select_file</label>
+              <label for="readerFileSelect">select_file</label>
               <select id="readerFileSelect"><option value="">-- choose a file --</option></select>
             </div>
             <div class="mabu-field">
-              <label>passphrase</label>
+              <label for="readerPassphrase">passphrase</label>
               <input type="password" id="readerPassphrase" placeholder="blank = default vault key">
             </div>
             <button class="mabu-btn" id="readerDecryptBtn">decrypt_and_view()</button>
@@ -697,15 +836,83 @@ increment  =  snowflake & 0xFFF</pre>
             <button class="mabu-btn mabu-btn-secondary" id="timelineRefreshBtn">refresh()</button>
           </div>
           <p class="mabu-note">Chronological view of all vault entries (decryptable with the default key). Passphrase-protected files appear locked and are excluded from the relationship graph.</p>
+          <div class="mabu-field-row">
+            <input type="text" id="timelineCaseFilter" placeholder="filter by case title...">
+            <select id="timelineStatusFilter" aria-label="filter by status">
+              <option value="">any status</option>
+              <option value="open">open</option>
+              <option value="closed">closed</option>
+              <option value="cold">cold</option>
+            </select>
+          </div>
           <div id="timelineTrack" class="mabu-timeline"></div>
         </div>
 
         <div class="mabu-card" style="margin-top:18px;">
           <h3>&gt; relationship_graph.svg</h3>
-          <p class="mabu-note">Cases are linked when they share an email, username, IP, or name. Hover a node for details.</p>
+          <p class="mabu-note">Cases are linked when they share an email, username, IP, phone, or name — a potential connection, not confirmed identity. Click a node for details, click a case to open it.</p>
+          <div class="mabu-graph-toolbar">
+            <button class="mabu-icon-btn" id="timelineZoomIn" type="button" title="zoom in" aria-label="zoom in">+</button>
+            <button class="mabu-icon-btn" id="timelineZoomOut" type="button" title="zoom out" aria-label="zoom out">-</button>
+            <button class="mabu-icon-btn mabu-icon-btn-wide" id="timelineZoomReset" type="button">reset</button>
+            <button class="mabu-icon-btn mabu-icon-btn-wide" id="timelineZoomFit" type="button">fit</button>
+          </div>
           <div class="mabu-graph-wrap">
             <svg id="graphSvg" class="mabu-graph-svg"></svg>
           </div>
+          <div class="mabu-graph-panel" id="timelinePanel" hidden></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="mabu-view" id="view-settings">
+        <div class="mabu-card">
+          <h3>&gt; settings --display</h3>
+          <p class="mabu-note">Client-side preferences only. Nothing here affects server security configuration.</p>
+
+          <div class="mabu-settings-row">
+            <div>
+              <div class="mabu-settings-label">Reduced effects</div>
+              <div class="mabu-settings-desc">Disable scanline/glow animation and the CRT overlay. Also follows your OS "reduce motion" setting automatically.</div>
+            </div>
+            <label class="mabu-switch">
+              <input type="checkbox" id="settingReducedFx">
+              <span class="mabu-switch-track"></span>
+            </label>
+          </div>
+
+          <div class="mabu-settings-row">
+            <div>
+              <div class="mabu-settings-label">Skip boot sequence</div>
+              <div class="mabu-settings-desc">Go straight to the login screen on future visits.</div>
+            </div>
+            <label class="mabu-switch">
+              <input type="checkbox" id="settingSkipBoot">
+              <span class="mabu-switch-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;">
+          <h3>&gt; session --info</h3>
+          <div class="mabu-kv"><span>username</span><b id="settingsUsername">–</b></div>
+          <div class="mabu-kv"><span>role</span><b id="settingsRole">–</b></div>
+          <div class="mabu-kv"><span>api origin</span><b id="settingsApiOrigin">–</b></div>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;">
+          <h3>&gt; application --info</h3>
+          <div class="mabu-kv"><span>MABU version</span><b id="settingsVersion">–</b></div>
+          <div class="mabu-kv"><span>.mabu schema</span><b>2</b></div>
+          <div class="mabu-kv"><span>encryption</span><b>Fernet (AES-128-CBC + HMAC)</b></div>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;">
+          <h3>&gt; keyboard --shortcuts</h3>
+          <div class="mabu-kv"><span>Ctrl+K</span><b>command palette</b></div>
+          <div class="mabu-kv"><span>Ctrl+N</span><b>new case</b></div>
+          <div class="mabu-kv"><span>Ctrl+/</span><b>search vault</b></div>
+          <div class="mabu-kv"><span>Esc</span><b>close dialog / modal</b></div>
         </div>
       </section>
 
@@ -717,21 +924,27 @@ increment  =  snowflake & 0xFFF</pre>
             <button class="mabu-btn mabu-btn-secondary" id="usersRefreshBtn">refresh()</button>
           </div>
           <div class="mabu-grid mabu-grid-2">
-            <input type="text" id="newUserUsername" placeholder="username">
-            <input type="password" id="newUserPassword" placeholder="password (min 8 chars)">
+            <div class="mabu-field">
+              <label for="newUserUsername">username</label>
+              <input type="text" id="newUserUsername" placeholder="username" autocomplete="off">
+            </div>
+            <div class="mabu-field">
+              <label for="newUserPassword">password</label>
+              <input type="password" id="newUserPassword" placeholder="min 8 characters" autocomplete="new-password">
+            </div>
           </div>
           <div class="mabu-field-row">
-            <select id="newUserRole">
+            <select id="newUserRole" aria-label="new user role">
               <option value="investigator">investigator</option>
               <option value="admin">admin</option>
             </select>
             <button class="mabu-btn" id="newUserBtn">create_user()</button>
           </div>
           <span class="mabu-save-status" id="usersStatus"></span>
-          <table class="mabu-table" id="usersTable">
-            <thead><tr><th>username</th><th>role</th><th>active</th><th>created</th><th></th></tr></thead>
+          <div class="mabu-table-wrap"><table class="mabu-table" id="usersTable">
+            <thead><tr><th>username</th><th>role</th><th>status</th><th>created</th><th>last login</th><th></th></tr></thead>
             <tbody></tbody>
-          </table>
+          </table></div>
         </div>
 
         <div class="mabu-card" style="margin-top:18px;">
@@ -739,10 +952,27 @@ increment  =  snowflake & 0xFFF</pre>
             <h3>&gt; audit_log.jsonl</h3>
             <button class="mabu-btn mabu-btn-secondary" id="auditRefreshBtn">refresh()</button>
           </div>
-          <table class="mabu-table" id="auditTable">
+          <div class="mabu-field-row">
+            <input type="text" id="auditSearchInput" placeholder="search actor / action / detail...">
+            <select id="auditActionFilter" aria-label="filter by action">
+              <option value="">-- any action --</option>
+            </select>
+            <button class="mabu-btn mabu-btn-secondary" id="auditFilterBtn">filter()</button>
+          </div>
+          <div class="mabu-table-wrap"><table class="mabu-table" id="auditTable">
             <thead><tr><th>time</th><th>actor</th><th>action</th><th>detail</th></tr></thead>
             <tbody></tbody>
-          </table>
+          </table></div>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;">
+          <h3>&gt; system --status</h3>
+          <p class="mabu-note">Non-secret configuration status only. Keys, hashes, and secrets are never displayed here.</p>
+          <div class="mabu-kv"><span>vault directory</span><b id="sysVaultDir">–</b></div>
+          <div class="mabu-kv"><span>vault key</span><b id="sysVaultKey">–</b></div>
+          <div class="mabu-kv"><span>case files</span><b id="sysCaseCount">–</b></div>
+          <div class="mabu-kv"><span>public origin</span><b id="sysPublicOrigin">–</b></div>
+          <div class="mabu-kv"><span>breach-check (HIBP)</span><b id="sysHibp">–</b></div>
         </div>
       </section>
 

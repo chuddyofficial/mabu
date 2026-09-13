@@ -1,6 +1,6 @@
 # MABU Dashboard
 
-A personal OSINT research platform for organizing and documenting publicly available digital footprint data — multi-entry case files, cross-case correlation, real WHOIS/DNS/handle lookups, and PDF reporting, behind single-admin authentication. Runs locally on your own machine or on a private VPS you control.
+A personal OSINT research platform for organizing and documenting publicly available digital footprint data — multi-entry case files, cross-case correlation, real WHOIS/DNS/handle lookups, and PDF reporting, behind multi-user, role-based authentication (admin/investigator). Runs locally on your own machine or on a private VPS you control.
 
 > **Scope note:** MABU is a note-taking, organization, and correlation tool for information you already have lawful, legitimate access to (public directories, platforms' own lookup/validation tools, server logs you own, protocol-level lookups like WHOIS/DNS, etc.). It does not scrape, brute-force, or query third-party aggregators/breach databases. Always follow the terms of service of any platform you research and applicable law in your jurisdiction.
 
@@ -35,19 +35,21 @@ mabu-dashboard/
 
 ## Features
 
-The dashboard uses a full CRT-terminal / matrix aesthetic — animated boot sequence, scanline overlay, glowing green-on-black monospace UI — on top of the following modules:
+The dashboard uses a CRT-terminal aesthetic — animated boot sequence (skippable), scanline overlay, glowing green-on-black monospace UI, with a "reduced effects" setting for users who want it dialed back — on top of the following modules:
 
-- **Auth** — multi-user accounts with **admin**/**investigator** roles, bcrypt-hashed passwords, server-side session cookies, per-IP login rate limiting (5 attempts / 5 min), CSRF-protected state-changing requests, and a full audit log
-- **Research / Vault** — cases hold multiple timestamped entries, a status (`open` / `closed` / `cold`), tags (with filtering), file attachments per entry, and a full activity log
-- **Case templates** — pre-filled tag/summary/findings skeletons for common investigation types (phishing, impersonation, harassment, fraud) — pick one when creating a case
-- **Related-case detection** — as you type identifiers into a new case, MABU checks the vault live and warns if that email/username/IP/name already appears in an existing case
-- **Correlate** — scans every decryptable case in the vault, auto-detects shared emails/usernames/IPs/phones/names, and clusters likely-same-person cases together
+- **Auth** — multi-user accounts with **admin**/**investigator** roles, bcrypt-hashed passwords, server-side session cookies (12-hour lifetime), per-IP login rate limiting (5 attempts / 5 min), CSRF-protected state-changing requests, and a full audit log
+- **Case workspace** — each case opens as a tabbed workspace (Overview / Entries / Identifiers / Attachments / Activity / Report), holding multiple timestamped entries, a status (`open` / `closed` / `cold`), tags (with filtering), file attachments per entry, and a full activity log
+- **Case templates** — pre-filled tag/summary/findings skeletons for common investigation types (phishing, impersonation, harassment, fraud), previewed before applying so they don't silently overwrite what you've already typed
+- **Related-case detection** — as you type identifiers into a new case, MABU checks the vault live and flags a **potential connection** if that email/username/IP/name already appears in an existing case. This is a shared identifier, not confirmation of identity.
+- **Correlate** — scans every decryptable case in the vault, detects shared emails/usernames/IPs/phones/names, and clusters cases with potential connections — presented as "shared identifier" evidence with an explicit assessment, never as proof of identity. Includes a zoomable/pannable relationship graph with click-to-inspect nodes and per-identifier-type filtering.
 - **Reporting** — generates a polished PDF report per case, or per correlation cluster (multi-case), with entries, identifiers, and activity log
-- **Public Records** — real WHOIS and DNS lookups, live handle-existence checks (HTTP requests to a platform's own profile URL), local phone number parsing (carrier/region/timezone via libphonenumber, no external API), and an opt-in HaveIBeenPwned breach check using your own API key
-- **Image metadata** — extracts EXIF data (camera info, timestamps, embedded GPS coordinates) from an uploaded image, entirely locally
-- **Admin panel** (admin role only) — create/deactivate/reactivate users, reset passwords, change roles, and browse the full audit log
+- **Public Records** — each tool is labeled by where its data comes from (public infrastructure / external API / local-only): real WHOIS and DNS lookups (structured by record type), live handle-existence checks (HTTP requests to a platform's own profile URL, with HTTP status and timestamp shown), local phone number parsing (region/timezone/carrier-block via libphonenumber's offline data — no external API, no subscriber/owner lookup), and an opt-in HaveIBeenPwned breach check using your own API key
+- **Image metadata** — extracts EXIF data (camera info, timestamps, embedded GPS coordinates) from an uploaded image, entirely locally — the image is never transmitted anywhere else
+- **Admin panel** (admin role only) — create/deactivate/reactivate/delete users, change roles, reset passwords, see each user's last-login time, browse a filterable/searchable audit log, and view non-secret system status (vault/key presence, case count, HIBP configuration)
 - **Reader** — decrypt and view raw `.mabu` case data, export to JSON
-- **Timeline** — chronological view of all decryptable cases, plus an SVG relationship graph
+- **Timeline** — chronological, filterable view of all decryptable cases, plus the same relationship graph as Correlate
+- **Command palette** (Ctrl+K) — jump to any view or action by typing; only shows commands your role is allowed to use
+- **Settings** — client-side preferences only (reduced effects, skip-boot), plus read-only session/version info — no security-critical configuration lives here
 - **Email / Username / Discord / Network-IP / Hash & Encode** — the original manual-tracking and utility tools (format validation, snowflake decoding, CIDR calculator, hashing, etc.)
 
 ## Requirements
@@ -61,23 +63,35 @@ The dashboard uses a full CRT-terminal / matrix aesthetic — animated boot sequ
 python setup.py
 ```
 
-`setup.py` is a full installer, not just a key generator. It will:
-1. Detect your environment and check for Python dependencies, offering to `pip install` any that are missing
-2. Create the vault directory
-3. Generate the vault encryption key (`vault/.mabu-default-key`)
-4. Generate the session signing secret (`config/session-secret.key`)
-5. Prompt you to create the first **admin account** — a username and a password (min 8 characters), stored as a bcrypt hash in `config/users.json` (never plaintext). Additional users (admin or investigator role) are managed afterward from the dashboard's **Admin** panel, not through `setup.py`.
-6. Optionally configure a **public domain** — generates ready-to-use `deploy/nginx.conf` and `deploy/mabu.service` files and prints the exact commands to install them (see the VPS deployment section below)
-7. Print a status summary of everything that's configured
+`setup.py` is a full installer, not just a key generator. It runs through 7 stages:
 
-Useful flags:
+```
+[1/7] ENVIRONMENT    detect OS, Python version, root/VPS heuristics
+[2/7] DEPENDENCIES   check for and optionally pip-install missing packages
+[3/7] VAULT          create the vault directory
+[4/7] SECURITY       generate the vault encryption key + session signing secret
+[5/7] ADMIN          create the first admin account (bcrypt-hashed password)
+[6/7] DEPLOYMENT     optionally configure a public domain (nginx + systemd config)
+[7/7] COMPLETE       print a status summary and next steps
+```
+
+Additional users (admin or investigator role) are managed afterward from the dashboard's **Admin** panel, not through `setup.py` — it only ever creates the first account.
+
+All flags:
 ```bash
-python setup.py --reset-admin                        # replace the admin account
-python setup.py --reset-vault-key                     # regenerate the vault key (invalidates old default-key-encrypted files)
-python setup.py --domain mabu.example.com              # (re)configure the public domain + regenerate deploy/ files
+python setup.py --reset-admin                        # create a new admin account (does not delete existing users) — asks for confirmation
+python setup.py --reset-vault-key                     # regenerate the vault key (invalidates old default-key-encrypted files) — asks for confirmation, cannot be combined with --non-interactive
+python setup.py --username admin                      # admin username (skips the interactive prompt)
+python setup.py --password-env MABU_ADMIN_PW           # env var holding the admin password (avoids shell history / interactive prompt)
+python setup.py --domain mabu.example.com              # (re)configure the public domain + regenerate deploy/ files (empty string clears it)
+python setup.py --service-user mabu                    # Linux user the systemd service runs as (default: mabu)
 python setup.py --skip-deps                            # skip the dependency check/install step
 python setup.py --non-interactive --username admin --password-env MABU_ADMIN_PW --domain mabu.example.com   # fully scripted install
 ```
+
+Re-running is always idempotent — it detects what's already configured and only acts on flags you explicitly pass.
+
+`--reset-admin` and `--reset-vault-key` are destructive/sensitive operations and always require interactive confirmation (typing `y`) unless you've supplied everything needed non-interactively via flags — `--reset-vault-key` in particular can never run under `--non-interactive`, since there's no safe way to auto-confirm "make old files unreadable."
 
 Re-running `setup.py` is always safe — nothing destructive happens unless you explicitly pass a `--reset-*` flag.
 
@@ -92,14 +106,14 @@ The server listens on `http://127.0.0.1:5057`. Open `index.html` in a browser �
 
 ### Migrating older vault data
 
-If you have `.mabu` files from before v3 (single-note format), run the migration once:
+If you have `.mabu` files from before multi-entry cases existed (the legacy schema 1, flat single-note format), run the migration once:
 
 ```bash
-python migrate_vault.py --dry-run   # preview
+python migrate_vault.py --dry-run   # preview: reports FILES FOUND / MIGRATABLE / SKIPPED
 python migrate_vault.py             # migrates all default-key files, backing them up first
 ```
 
-Files are backed up to `vault/mabu-files-backup-<timestamp>/` before anything on disk is rewritten. Passphrase-protected files must be migrated individually: `python migrate_vault.py -f case.mabu -p yourpassphrase`.
+Files are backed up to `vault/mabu-files-backup-<timestamp>/` before anything on disk is rewritten. Passphrase-protected files must be migrated individually: `python migrate_vault.py -f case.mabu -p yourpassphrase`. The script exits with status `0` on full success, `2` if any file was not found or failed to migrate — safe to check in a deploy script.
 
 ## The `.mabu` File Format (v2)
 
@@ -143,7 +157,7 @@ Encryption is **Fernet** (from `cryptography`). Files saved without a custom pas
 
 ## mabu-reader.py / mabu-open.py
 
-Two standalone tools for working with `.mabu` files outside the dashboard — a CLI (`mabu-reader.py`) and a GUI app (`mabu-open.py`, launch via `MABU Reader.vbs` for zero console window). Both are unaffected by the v3 auth/case changes and read the same `.mabu` format directly. See inline `--help` / the app's own UI for usage.
+Two standalone tools for working with `.mabu` files outside the dashboard — a CLI (`mabu-reader.py`) and a GUI app (`mabu-open.py`, launch via `MABU Reader.vbs` for zero console window). Both are independent of the dashboard's auth/case-management layer and read the same `.mabu` format (schema 1 and 2) directly. See inline `--help` / the app's own UI for usage.
 
 ## Deploying to a Ubuntu VPS
 
@@ -183,7 +197,9 @@ sudo systemctl enable --now mabu
 sudo systemctl status mabu
 ```
 
-Run the app as a **dedicated non-root user**, not root — pass `--service-user yourusername` to `setup.py` if it isn't `mabu`, so the generated service file matches.
+Run the app as a **dedicated non-root user**, not root — pass `--service-user yourusername` to `setup.py` if it isn't `mabu`, so the generated service file matches. Create the user first if it doesn't exist: `sudo useradd --system --home /nonexistent --shell /usr/sbin/nologin mabu` (or your chosen name), then make sure it owns the install directory: `sudo chown -R mabu:mabu /path/to/mabu`.
+
+The generated unit file is sandboxed with standard systemd hardening directives (`ProtectSystem=strict`, `ProtectHome`, `NoNewPrivileges`, restricted namespaces/kernel access, and `ReadWritePaths` scoped to just `config/` and `vault/`), plus resource caps (`MemoryMax`, `TasksMax`, `LimitNOFILE`) — even if the app process were compromised, it cannot write outside its own config/vault directories or escalate privileges.
 
 ### 4. Install the generated nginx config, then get HTTPS
 
@@ -246,7 +262,9 @@ Without a key set, the tool clearly reports itself as "not configured" rather th
 - Passwords are hashed with **bcrypt**, never stored or logged in plaintext. There is no "forgot password" flow by design — a locked-out user's password can only be reset by an admin (via the Admin panel) or, for the very first account, by re-running `setup.py --reset-admin` with filesystem access to the server.
 - **Login attempts are rate-limited** to 5 failures per (username, IP) pair within a 5-minute window, to slow brute-force attempts. This resets on server restart (in-memory only).
 - **All state-changing requests (POST/PUT/PATCH/DELETE) require a CSRF token** (`X-CSRF-Token` header, issued per-session on login) in addition to the session cookie — this stops a malicious page from silently triggering actions using your logged-in session.
-- **Every security-relevant action is audit-logged**: logins (success/failure/rate-limited), logouts, password changes, user creation/deactivation/deletion/role changes, case creation, entries, and status changes — visible to admins in the Admin panel.
+- **Every security-relevant action is audit-logged**: logins (success/failure/rate-limited), logouts, password changes, user creation/deactivation/deletion/role changes, case creation, entries, status/tag changes, case decryption, attachment downloads, and report generation — visible to admins in the Admin panel.
+- Sessions expire after 12 hours of being issued (`PERMANENT_SESSION_LIFETIME`); logging out clears the session server-side immediately.
+- Security response headers are set on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, a restrictive `Permissions-Policy`, and (once `MABU_PUBLIC_ORIGIN` is set) `Strict-Transport-Security`. Content-Security-Policy is intentionally set in the nginx config (see `deploy/nginx.conf`), not by Flask, since nginx — not Flask — serves the actual HTML/JS/CSS in production.
 - `config/users.json` (password hashes) and `config/session-secret.key` (cookie signing key) must never be committed or exposed — treat them like any other credential file.
 - The vault default key (`vault/.mabu-default-key`) is equally sensitive — anyone with that file and your `.mabu` files (not passphrase-protected) can decrypt them.
 - For anything especially sensitive, use a per-case passphrase instead of relying on the default key.

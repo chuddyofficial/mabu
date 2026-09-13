@@ -77,8 +77,7 @@ def main():
 
     if not args.dry_run:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-        backup_dir = os.path.join(vdir, f"..\\mabu-files-backup-{stamp}")
-        backup_dir = os.path.normpath(backup_dir)
+        backup_dir = os.path.normpath(os.path.join(vdir, os.pardir, f"mabu-files-backup-{stamp}"))
         os.makedirs(backup_dir, exist_ok=True)
         for path in targets:
             if os.path.isfile(path):
@@ -86,14 +85,41 @@ def main():
         print(f"Backed up {len(targets)} file(s) to {backup_dir}\n")
 
     print(f"{'DRY RUN — ' if args.dry_run else ''}Migrating {len(targets)} file(s)...\n")
+
+    counts = {"found": len(targets), "migratable": 0, "migrated": 0, "skipped": 0, "failed": 0, "not_found": 0}
+
     for path in targets:
         if not os.path.isfile(path):
             print(f"  {os.path.basename(path)}: NOT FOUND")
+            counts["not_found"] += 1
             continue
         result = migrate_file(path, args.passphrase, args.dry_run)
         print(f"  {os.path.basename(path)}: {result}")
+        if result.startswith("WOULD MIGRATE"):
+            counts["migratable"] += 1
+        elif result.startswith("MIGRATED"):
+            counts["migrated"] += 1
+        elif result.startswith("SKIPPED"):
+            counts["skipped"] += 1
+        else:
+            counts["failed"] += 1
 
+    print()
+    print(f"FILES FOUND:       {counts['found']}")
+    if args.dry_run:
+        print(f"FILES MIGRATABLE:  {counts['migratable']}")
+    else:
+        print(f"FILES MIGRATED:    {counts['migrated']}")
+    print(f"FILES SKIPPED:     {counts['skipped']}")
+    if counts["not_found"]:
+        print(f"FILES NOT FOUND:   {counts['not_found']}")
+    if counts["failed"]:
+        print(f"FILES FAILED:      {counts['failed']}")
     print("\nDone.")
+
+    if counts["not_found"] or counts["failed"]:
+        sys.exit(2)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

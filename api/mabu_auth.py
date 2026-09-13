@@ -234,6 +234,8 @@ def verify_login(username: str, password: str, ip: str = "unknown") -> dict | No
         return None
 
     _clear_attempts(username, ip)
+    match["last_login"] = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime())
+    _save_users(users)
     log_audit(username, "login_success", f"ip={ip}")
     return {k: v for k, v in match.items() if k != "password_hash"}
 

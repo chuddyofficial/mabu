@@ -1,25 +1,137 @@
 :root {
+  /* ---- surface hierarchy ---- */
   --mabu-bg: #030905;
-  --mabu-panel: #050f08;
-  --mabu-panel-alt: #08160c;
+  --mabu-surface: #050f08;
+  --mabu-surface-alt: #08160c;
+  --mabu-surface-raised: #0b1c10;
+  --mabu-panel: var(--mabu-surface);
+  --mabu-panel-alt: var(--mabu-surface-alt);
+  --mabu-input-bg: #010601;
+
+  /* ---- borders ---- */
   --mabu-border: #144d24;
   --mabu-border-light: #1f7a38;
+  --mabu-border-strong: #2e9e4f;
+
+  /* ---- text ---- */
   --mabu-text: #baffc9;
   --mabu-text-dim: #6fbf8a;
   --mabu-text-faint: #3f7a54;
+
+  /* ---- brand / accent ---- */
   --mabu-green: #00ff66;
   --mabu-green-bright: #5dffa0;
   --mabu-green-dim: #0e5c28;
+  --mabu-accent: var(--mabu-green);
+
+  /* ---- semantic ---- */
   --mabu-amber: #ffb000;
+  --mabu-warning: var(--mabu-amber);
   --mabu-red: #ff3b5c;
+  --mabu-danger: var(--mabu-red);
   --mabu-cyan: #35fff0;
+  --mabu-info: var(--mabu-cyan);
+  --mabu-success: var(--mabu-green);
+
+  --mabu-warning-bg: rgba(255, 176, 0, 0.08);
+  --mabu-danger-bg: rgba(255, 59, 92, 0.08);
+  --mabu-info-bg: rgba(53, 255, 240, 0.08);
+  --mabu-success-bg: rgba(0, 255, 102, 0.08);
+
   --mabu-gradient: linear-gradient(135deg, #00ff66 0%, #00c2a8 100%);
+
+  /* ---- radius scale ---- */
+  --mabu-radius-sm: 2px;
   --mabu-radius: 4px;
+  --mabu-radius-lg: 8px;
+  --mabu-radius-pill: 999px;
+
+  /* ---- spacing scale ---- */
+  --mabu-space-1: 4px;
+  --mabu-space-2: 8px;
+  --mabu-space-3: 12px;
+  --mabu-space-4: 16px;
+  --mabu-space-5: 20px;
+  --mabu-space-6: 24px;
+  --mabu-space-8: 32px;
+  --mabu-space-10: 40px;
+
+  /* ---- typography scale ---- */
+  --mabu-font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
+  --mabu-text-xs: 10.5px;
+  --mabu-text-sm: 12px;
+  --mabu-text-base: 13.5px;
+  --mabu-text-md: 15px;
+  --mabu-text-lg: 18px;
+  --mabu-text-xl: 22px;
+
+  /* ---- elevation / glow ---- */
+  --mabu-shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
   --mabu-shadow: 0 0 24px rgba(0, 255, 102, 0.08), 0 8px 24px rgba(0,0,0,0.6);
+  --mabu-shadow-lg: 0 0 32px rgba(0, 255, 102, 0.1), 0 16px 40px rgba(0,0,0,0.65);
+  --mabu-glow-sm: 0 0 4px rgba(0, 255, 102, 0.4);
   --mabu-glow: 0 0 6px rgba(0, 255, 102, 0.55);
+  --mabu-glow-lg: 0 0 14px rgba(0, 255, 102, 0.6);
+
+  /* ---- motion ---- */
+  --mabu-duration-fast: 0.12s;
+  --mabu-duration: 0.15s;
+  --mabu-duration-slow: 0.3s;
+  --mabu-ease: ease;
+
+  /* ---- z-index scale ---- */
+  --mabu-z-graph: 1;
+  --mabu-z-dropdown: 20;
+  --mabu-z-sidebar: 30;
+  --mabu-z-topbar: 40;
+  --mabu-z-toast: 9000;
+  --mabu-z-command-palette: 9500;
+  --mabu-z-modal: 9600;
+  --mabu-z-noise: 9997;
+  --mabu-z-scanlines: 9998;
+  --mabu-z-login: 9999;
+  --mabu-z-boot: 10000;
+
+  /* ---- breakpoints (referenced in comments; media queries can't read vars) ---- */
+  --mabu-bp-tablet: 900px;
+  --mabu-bp-narrow: 640px;
 }
 
 * { box-sizing: border-box; }
+
+/* ---------------- Reduced effects ----------------
+   Toggled by JS via .mabu-reduced-fx on <html> (Settings panel), and also
+   applied automatically when the OS/browser prefers-reduced-motion is set,
+   so a user's system preference is respected even before they visit
+   Settings. Kills perpetual animations and dials back the CRT overlay
+   without touching layout or color. */
+.mabu-reduced-fx .mabu-scanlines,
+.mabu-reduced-fx .mabu-noise {
+  display: none;
+}
+
+.mabu-reduced-fx *,
+.mabu-reduced-fx *::before,
+.mabu-reduced-fx *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mabu-scanlines,
+  .mabu-noise {
+    display: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
 
 html, body {
   margin: 0;
@@ -47,7 +159,7 @@ html, body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9998;
+  z-index: var(--mabu-z-scanlines);
   background: repeating-linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0) 0px,
@@ -63,7 +175,7 @@ html, body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9997;
+  z-index: var(--mabu-z-noise);
   background: radial-gradient(ellipse at center, rgba(0,255,102,0.03) 0%, rgba(0,0,0,0.35) 100%);
 }
 
@@ -99,7 +211,7 @@ html, body {
   inset: 0;
   background: #010401;
   color: var(--mabu-green);
-  z-index: 10000;
+  z-index: var(--mabu-z-boot);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -110,12 +222,28 @@ html, body {
   display: none;
 }
 
+.mabu-boot-skip {
+  position: absolute;
+  bottom: var(--mabu-space-6);
+  right: var(--mabu-space-6);
+  background: transparent;
+  border: 1px solid var(--mabu-border-light);
+  color: var(--mabu-text-dim);
+  padding: 8px 16px;
+  border-radius: var(--mabu-radius);
+  font-family: inherit;
+  font-size: var(--mabu-text-xs);
+  cursor: pointer;
+}
+
+.mabu-boot-skip:hover { color: var(--mabu-green); border-color: var(--mabu-green); }
+
 /* ---------------- Login screen ---------------- */
 
 .mabu-login-screen {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: var(--mabu-z-login);
   background: var(--mabu-bg);
   display: flex;
   align-items: center;
@@ -402,6 +530,14 @@ html, body {
 .mabu-prompt {
   color: var(--mabu-green);
   margin-right: 4px;
+}
+
+.mabu-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--mabu-space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .mabu-badge {
@@ -797,6 +933,13 @@ textarea[readonly] {
   cursor: pointer;
   user-select: none;
   border: 1px solid var(--mabu-border);
+  font-family: inherit;
+  background: transparent;
+}
+
+.mabu-pill:focus-visible {
+  outline: 2px solid var(--mabu-green);
+  outline-offset: 2px;
 }
 
 .mabu-pill[data-status="confirmed"] { color: var(--mabu-green); border-color: var(--mabu-green-dim); background: rgba(0,255,102,0.08); }
@@ -885,8 +1028,573 @@ textarea[readonly] {
   stroke-width: 1;
 }
 
+.mabu-graph-svg line.edge.dim { opacity: 0.15; }
+.mabu-graph-svg circle.node.dim { opacity: 0.25; }
+.mabu-graph-svg circle.node.selected { stroke: var(--mabu-cyan); stroke-width: 2.5; filter: drop-shadow(0 0 4px var(--mabu-cyan)); }
+.mabu-graph-svg circle.node { cursor: pointer; transition: opacity var(--mabu-duration) var(--mabu-ease); }
+.mabu-graph-svg text { cursor: default; user-select: none; }
+
+.mabu-graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--mabu-space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--mabu-space-3);
+}
+
+.mabu-graph-legend {
+  display: flex;
+  gap: var(--mabu-space-4);
+  flex-wrap: wrap;
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-faint);
+  padding: var(--mabu-space-2) 0;
+}
+
+.mabu-graph-legend-item { display: flex; align-items: center; gap: 6px; }
+.mabu-graph-legend-swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+.mabu-graph-panel {
+  margin-top: var(--mabu-space-3);
+  padding: var(--mabu-space-3) var(--mabu-space-4);
+  background: var(--mabu-input-bg);
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+}
+
+.mabu-graph-panel[hidden] { display: none; }
+
+/* ---------------- Icon buttons (topbar utilities) ---------------- */
+.mabu-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  color: var(--mabu-text-dim);
+  cursor: pointer;
+  font-size: var(--mabu-text-sm);
+  font-family: inherit;
+  position: relative;
+  transition: all var(--mabu-duration-fast) var(--mabu-ease);
+}
+
+.mabu-icon-btn:hover {
+  color: var(--mabu-green);
+  border-color: var(--mabu-green-dim);
+  background: rgba(0,255,102,0.06);
+}
+
+.mabu-icon-btn-wide { width: auto; padding: 0 12px; }
+
+.mabu-icon-btn .mabu-badge-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--mabu-radius-pill);
+  background: var(--mabu-red);
+  color: #fff;
+  font-size: 9.5px;
+  line-height: 16px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* ---------------- Toast / notification system ---------------- */
+.mabu-toast-stack {
+  position: fixed;
+  top: var(--mabu-space-5);
+  right: var(--mabu-space-5);
+  z-index: var(--mabu-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mabu-space-2);
+  max-width: 360px;
+  pointer-events: none;
+}
+
+.mabu-toast {
+  pointer-events: auto;
+  background: var(--mabu-surface-raised);
+  border: 1px solid var(--mabu-border-light);
+  border-left: 3px solid var(--mabu-green);
+  border-radius: var(--mabu-radius);
+  padding: var(--mabu-space-3) var(--mabu-space-4);
+  box-shadow: var(--mabu-shadow-lg);
+  font-size: var(--mabu-text-sm);
+  color: var(--mabu-text);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mabu-space-2);
+  animation: mabuToastIn var(--mabu-duration-slow) var(--mabu-ease);
+}
+
+.mabu-toast.leaving { animation: mabuToastOut var(--mabu-duration-slow) var(--mabu-ease) forwards; }
+
+.mabu-toast-icon { font-weight: 800; flex-shrink: 0; }
+.mabu-toast-body { flex: 1; line-height: 1.5; }
+.mabu-toast-title { font-weight: 700; margin-bottom: 2px; text-transform: uppercase; font-size: var(--mabu-text-xs); letter-spacing: 0.5px; }
+.mabu-toast-close { background: none; border: none; color: var(--mabu-text-faint); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.mabu-toast-close:hover { color: var(--mabu-text); }
+
+.mabu-toast[data-type="success"] { border-left-color: var(--mabu-success); }
+.mabu-toast[data-type="success"] .mabu-toast-icon { color: var(--mabu-success); }
+.mabu-toast[data-type="info"] { border-left-color: var(--mabu-info); }
+.mabu-toast[data-type="info"] .mabu-toast-icon { color: var(--mabu-info); }
+.mabu-toast[data-type="warning"] { border-left-color: var(--mabu-warning); }
+.mabu-toast[data-type="warning"] .mabu-toast-icon { color: var(--mabu-warning); }
+.mabu-toast[data-type="error"] { border-left-color: var(--mabu-danger); }
+.mabu-toast[data-type="error"] .mabu-toast-icon { color: var(--mabu-danger); }
+
+@keyframes mabuToastIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes mabuToastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(24px); }
+}
+
+/* ---------------- Modal / confirmation dialog ---------------- */
+.mabu-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 4, 1, 0.75);
+  z-index: var(--mabu-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mabu-space-4);
+}
+
+.mabu-modal-overlay[hidden] { display: none; }
+
+.mabu-modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--mabu-surface-raised);
+  border: 1px solid var(--mabu-border-light);
+  border-radius: var(--mabu-radius-lg);
+  box-shadow: var(--mabu-shadow-lg);
+  padding: var(--mabu-space-6);
+}
+
+.mabu-modal.mabu-modal-danger { border-color: rgba(255,59,92,0.5); }
+
+.mabu-modal h3 {
+  margin: 0 0 var(--mabu-space-2) 0;
+  font-size: var(--mabu-text-md);
+  color: var(--mabu-text);
+}
+
+.mabu-modal.mabu-modal-danger h3 { color: var(--mabu-red); }
+
+.mabu-modal p {
+  color: var(--mabu-text-dim);
+  font-size: var(--mabu-text-sm);
+  line-height: 1.6;
+  margin: 0 0 var(--mabu-space-4) 0;
+}
+
+.mabu-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--mabu-space-2);
+}
+
+/* ---------------- Command palette ---------------- */
+.mabu-cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 4, 1, 0.7);
+  z-index: var(--mabu-z-command-palette);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh var(--mabu-space-4) var(--mabu-space-4) var(--mabu-space-4);
+}
+
+.mabu-cmdk-overlay[hidden] { display: none; }
+
+.mabu-cmdk {
+  width: 100%;
+  max-width: 560px;
+  background: var(--mabu-surface-raised);
+  border: 1px solid var(--mabu-green-dim);
+  border-radius: var(--mabu-radius-lg);
+  box-shadow: var(--mabu-shadow-lg);
+  overflow: hidden;
+}
+
+.mabu-cmdk-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--mabu-border);
+  background: transparent;
+  color: var(--mabu-text);
+  padding: var(--mabu-space-4);
+  font-size: var(--mabu-text-md);
+  font-family: inherit;
+  outline: none;
+}
+
+.mabu-cmdk-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--mabu-space-2);
+}
+
+.mabu-cmdk-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--mabu-space-3);
+  border-radius: var(--mabu-radius);
+  cursor: pointer;
+  color: var(--mabu-text-dim);
+  font-size: var(--mabu-text-sm);
+}
+
+.mabu-cmdk-item.active,
+.mabu-cmdk-item:hover {
+  background: rgba(0,255,102,0.08);
+  color: var(--mabu-green-bright);
+}
+
+.mabu-cmdk-item-hint {
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-faint);
+}
+
+.mabu-cmdk-empty {
+  padding: var(--mabu-space-5);
+  text-align: center;
+  color: var(--mabu-text-faint);
+  font-size: var(--mabu-text-sm);
+}
+
+.mabu-cmdk-footer {
+  border-top: 1px solid var(--mabu-border);
+  padding: var(--mabu-space-2) var(--mabu-space-4);
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-faint);
+  display: flex;
+  gap: var(--mabu-space-4);
+}
+
+/* ---------------- Case workspace tabs ---------------- */
+.mabu-case-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mabu-space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--mabu-space-4);
+}
+
+.mabu-case-title-group h2 {
+  margin: 0 0 4px 0;
+  font-size: var(--mabu-text-lg);
+  color: var(--mabu-text);
+}
+
+.mabu-case-meta {
+  display: flex;
+  gap: var(--mabu-space-3);
+  flex-wrap: wrap;
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-faint);
+}
+
+.mabu-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--mabu-border);
+  margin-bottom: var(--mabu-space-4);
+  overflow-x: auto;
+}
+
+.mabu-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--mabu-text-faint);
+  padding: var(--mabu-space-3) var(--mabu-space-4);
+  font-family: inherit;
+  font-size: var(--mabu-text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--mabu-duration-fast) var(--mabu-ease);
+}
+
+.mabu-tab:hover { color: var(--mabu-text-dim); }
+
+.mabu-tab.active {
+  color: var(--mabu-green);
+  border-bottom-color: var(--mabu-green);
+}
+
+.mabu-tab-panel { display: none; }
+.mabu-tab-panel.active { display: block; animation: mabuFadeIn var(--mabu-duration-slow) var(--mabu-ease); }
+
+/* ---------------- Identifier chips ---------------- */
+.mabu-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mabu-space-2);
+  margin: var(--mabu-space-2) 0;
+}
+
+.mabu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--mabu-input-bg);
+  border: 1px solid var(--mabu-border-light);
+  border-radius: var(--mabu-radius);
+  padding: 6px 10px;
+  font-size: var(--mabu-text-xs);
+}
+
+.mabu-chip-type {
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--mabu-text-faint);
+  padding: 1px 5px;
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius-sm);
+}
+
+.mabu-chip-value { color: var(--mabu-green-bright); word-break: break-all; }
+
+.mabu-chip-btn {
+  background: none;
+  border: none;
+  color: var(--mabu-text-faint);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.mabu-chip-btn:hover { color: var(--mabu-red); }
+
+/* ---------------- Data-provenance labels ---------------- */
+.mabu-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: var(--mabu-radius-sm);
+  font-weight: 700;
+}
+
+.mabu-provenance[data-kind="observed"] { color: var(--mabu-cyan); background: var(--mabu-info-bg); border: 1px solid rgba(53,255,240,0.3); }
+.mabu-provenance[data-kind="source"] { color: var(--mabu-green); background: var(--mabu-success-bg); border: 1px solid var(--mabu-border-light); }
+.mabu-provenance[data-kind="analyst"] { color: var(--mabu-text-dim); background: rgba(111,191,138,0.08); border: 1px solid var(--mabu-border); }
+.mabu-provenance[data-kind="correlation"] { color: var(--mabu-amber); background: var(--mabu-warning-bg); border: 1px solid rgba(255,176,0,0.3); }
+.mabu-provenance[data-kind="inference"] { color: #c98bff; background: rgba(201,139,255,0.08); border: 1px solid rgba(201,139,255,0.3); }
+
+/* ---------------- Empty / loading states ---------------- */
+.mabu-empty-state {
+  text-align: center;
+  padding: var(--mabu-space-10) var(--mabu-space-4);
+  color: var(--mabu-text-faint);
+}
+
+.mabu-empty-state-icon {
+  font-size: 28px;
+  margin-bottom: var(--mabu-space-3);
+  color: var(--mabu-border-strong);
+}
+
+.mabu-empty-state h4 {
+  color: var(--mabu-text-dim);
+  font-size: var(--mabu-text-md);
+  margin: 0 0 6px 0;
+  text-transform: none;
+}
+
+.mabu-empty-state p {
+  font-size: var(--mabu-text-sm);
+  margin: 0 0 var(--mabu-space-4) 0;
+}
+
+.mabu-loading-state {
+  display: flex;
+  align-items: center;
+  gap: var(--mabu-space-2);
+  padding: var(--mabu-space-4);
+  color: var(--mabu-text-dim);
+  font-size: var(--mabu-text-sm);
+}
+
+.mabu-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--mabu-border);
+  border-top-color: var(--mabu-green);
+  border-radius: 50%;
+  animation: mabuSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes mabuSpin { to { transform: rotate(360deg); } }
+
+/* ---------------- Settings panel ---------------- */
+.mabu-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--mabu-space-3) 0;
+  border-bottom: 1px solid var(--mabu-border);
+  gap: var(--mabu-space-4);
+}
+
+.mabu-settings-row:last-child { border-bottom: none; }
+
+.mabu-settings-label { font-size: var(--mabu-text-sm); color: var(--mabu-text); }
+.mabu-settings-desc { font-size: var(--mabu-text-xs); color: var(--mabu-text-faint); margin-top: 2px; }
+
+.mabu-switch {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.mabu-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.mabu-switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--mabu-input-bg);
+  border: 1px solid var(--mabu-border-light);
+  border-radius: var(--mabu-radius-pill);
+  cursor: pointer;
+  transition: background var(--mabu-duration) var(--mabu-ease);
+}
+
+.mabu-switch-track::before {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 2px;
+  top: 2px;
+  background: var(--mabu-text-faint);
+  border-radius: 50%;
+  transition: transform var(--mabu-duration) var(--mabu-ease), background var(--mabu-duration) var(--mabu-ease);
+}
+
+.mabu-switch input:checked + .mabu-switch-track {
+  border-color: var(--mabu-green);
+  background: rgba(0,255,102,0.08);
+}
+
+.mabu-switch input:checked + .mabu-switch-track::before {
+  transform: translateX(18px);
+  background: var(--mabu-green);
+  box-shadow: 0 0 4px var(--mabu-green);
+}
+
+/* ---------------- Confidence / connection cards ---------------- */
+.mabu-connection-card {
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  padding: var(--mabu-space-4);
+  margin-bottom: var(--mabu-space-3);
+  background: var(--mabu-input-bg);
+}
+
+.mabu-connection-title {
+  font-size: var(--mabu-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mabu-amber);
+  margin-bottom: var(--mabu-space-2);
+  font-weight: 700;
+}
+
+.mabu-connection-evidence {
+  font-size: var(--mabu-text-sm);
+  color: var(--mabu-text-dim);
+  line-height: 1.7;
+}
+
+.mabu-connection-assessment {
+  margin-top: var(--mabu-space-2);
+  padding-top: var(--mabu-space-2);
+  border-top: 1px dashed var(--mabu-border);
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-faint);
+}
+
+/* ---------------- Skip-to-content / focus visibility ---------------- */
+.mabu-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: var(--mabu-z-modal);
+  background: var(--mabu-green);
+  color: #000;
+  padding: 10px 16px;
+  border-radius: var(--mabu-radius);
+  font-weight: 700;
+}
+
+.mabu-skip-link:focus {
+  left: var(--mabu-space-3);
+  top: var(--mabu-space-3);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--mabu-green);
+  outline-offset: 2px;
+}
+
+/* ---------------- Responsive ---------------- */
 @media (max-width: 900px) {
   .mabu-shell { flex-direction: column; }
   .mabu-sidebar { width: 100%; height: auto; position: relative; }
   .mabu-grid, .mabu-grid-2 { grid-template-columns: 1fr; }
+  .mabu-toast-stack { left: var(--mabu-space-3); right: var(--mabu-space-3); max-width: none; }
+  .mabu-topbar { padding: var(--mabu-space-4) var(--mabu-space-5); }
+  .mabu-content { padding: var(--mabu-space-5) var(--mabu-space-5) var(--mabu-space-8) var(--mabu-space-5); }
+  .mabu-graph-toolbar { flex-wrap: wrap; }
+}
+
+@media (max-width: 640px) {
+  .mabu-topbar { flex-direction: column; align-items: flex-start; gap: var(--mabu-space-2); padding: var(--mabu-space-3) var(--mabu-space-4); }
+  .mabu-topbar-right { width: 100%; justify-content: flex-start; }
+  .mabu-content { padding: var(--mabu-space-4) var(--mabu-space-3) var(--mabu-space-8) var(--mabu-space-3); }
+  .mabu-case-header { flex-direction: column; }
+  .mabu-case-header .mabu-actions { width: 100%; }
+  .mabu-field-row { flex-direction: column; }
+  .mabu-cmdk-overlay { padding-top: 8vh; }
+  .mabu-vault-header { flex-direction: column; align-items: flex-start; gap: var(--mabu-space-2); }
+  .mabu-table-wrap { overflow-x: auto; }
+  .mabu-table-wrap .mabu-table { min-width: 480px; }
 }

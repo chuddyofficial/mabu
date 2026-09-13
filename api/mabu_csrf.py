@@ -22,6 +22,14 @@ def get_or_create_csrf_token() -> str:
     return session["csrf_token"]
 
 
+def rotate_csrf_token() -> str:
+    """Force a fresh CSRF token, e.g. on login, so a token issued before
+    authentication (or to a previous user on a shared browser) can't be
+    replayed against the newly-authenticated session."""
+    session["csrf_token"] = secrets.token_hex(24)
+    return session["csrf_token"]
+
+
 def csrf_protect(view):
     @wraps(view)
     def wrapped(*args, **kwargs):

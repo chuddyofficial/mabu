@@ -47,12 +47,31 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=bool(PUBLIC_ORIGIN),
+    PERMANENT_SESSION_LIFETIME=60 * 60 * 12,  # 12 hours
 )
 
 if PUBLIC_ORIGIN:
+    # Same-origin in production: the dashboard is served by nginx on the same
+    # origin as /api/, so CORS only needs to allow that one exact origin
+    # (kept mainly so the API still answers sane preflights; the frontend
+    # itself no longer needs cross-origin credentials once behind nginx).
     CORS(app, supports_credentials=True, origins=[PUBLIC_ORIGIN], expose_headers=["X-CSRF-Token"])
 else:
+    # Local dev only: index.html is often opened via file:// or a different
+    # port than the Flask API, so origins are left permissive here. This
+    # branch is never used once MABU_PUBLIC_ORIGIN is set for a deployment.
     CORS(app, supports_credentials=True, expose_headers=["X-CSRF-Token"])
+
+
+@app.after_request
+def _set_security_headers(resp):
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["Referrer-Policy"] = "same-origin"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    if PUBLIC_ORIGIN:
+        resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -127,12 +146,13 @@ def auth_login():
 
     user = mabu_auth.verify_login(username, password, ip)
     if user:
+        session.clear()
         session["mabu_authed"] = True
         session["mabu_username"] = user["username"]
         session["mabu_role"] = user["role"]
         session["mabu_user_id"] = user["user_id"]
         session.permanent = True
-        return jsonify({"status": "ok", "username": user["username"], "role": user["role"], "csrf_token": mabu_csrf.get_or_create_csrf_token()})
+        return jsonify({"status": "ok", "username": user["username"], "role": user["role"], "csrf_token": mabu_csrf.rotate_csrf_token()})
 
     return jsonify({"error": "Invalid username or password"}), 401
 
@@ -241,6 +261,25 @@ def users_delete(username):
 def audit_log():
     limit = min(int(request.args.get("limit", 200)), 1000)
     return jsonify({"entries": mabu_auth.read_audit_log(limit)})
+
+
+@app.get("/api/system/status")
+@admin_required
+def system_status():
+    """Non-secret configuration/status info for the admin System panel.
+
+    Deliberately excludes anything from PRESERVE list §51: no key material,
+    no password hashes, no session secret, no API keys — only presence
+    booleans and counts.
+    """
+    case_count = len([f for f in os.listdir(VAULT_DIR) if f.endswith(".mabu")]) if os.path.isdir(VAULT_DIR) else 0
+    return jsonify({
+        "vault_dir": VAULT_DIR,
+        "vault_key_present": os.path.exists(fmt.default_key_path()),
+        "case_count": case_count,
+        "public_origin": PUBLIC_ORIGIN or None,
+        "hibp_configured": mabu_lookups.hibp_is_configured(),
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -357,17 +396,32 @@ def cases_create():
 
     first_entry_summary = data.get("summary", "")
     first_entry_findings = data.get("findings", "")
-    if first_entry_summary or first_entry_findings:
+    first_entry_emails = data.get("emails", [])
+    first_entry_phones = data.get("phones", [])
+    first_entry_usernames = data.get("usernames", [])
+    first_entry_names = data.get("names", [])
+    first_entry_ips = data.get("ips", [])
+    first_entry_sources = data.get("sources", [])
+
+    # Create a first entry whenever there's ANY content to preserve — text or
+    # identifiers. Gating this on summary/findings alone silently dropped any
+    # identifiers submitted with an otherwise-blank first entry.
+    has_content = any([
+        first_entry_summary, first_entry_findings, first_entry_emails,
+        first_entry_phones, first_entry_usernames, first_entry_names,
+        first_entry_ips, first_entry_sources,
+    ])
+    if has_content:
         entry = fmt.new_entry(
             author=investigator,
             summary=first_entry_summary,
             findings=first_entry_findings,
-            emails=data.get("emails", []),
-            phones=data.get("phones", []),
-            usernames=data.get("usernames", []),
-            names=data.get("names", []),
-            ips=data.get("ips", []),
-            sources=data.get("sources", []),
+            emails=first_entry_emails,
+            phones=first_entry_phones,
+            usernames=first_entry_usernames,
+            names=first_entry_names,
+            ips=first_entry_ips,
+            sources=first_entry_sources,
         )
         fmt.add_entry(case, entry)
 
@@ -463,6 +517,7 @@ def cases_set_tags(filename):
     except (InvalidToken, ValueError) as e:
         return jsonify({"error": str(e)}), 400
 
+    mabu_auth.log_audit(session["mabu_username"], "tags_updated", f"{filename} -> {', '.join(tags)}")
     return jsonify({"status": "ok"})
 
 
@@ -581,6 +636,7 @@ def vault_decrypt():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
+    mabu_auth.log_audit(session["mabu_username"], "case_decrypted", filename)
     return jsonify({"status": "ok", "record": case})
 
 
@@ -659,6 +715,7 @@ def correlate():
             "title": n["title"],
             "status": n["status"],
             "identifiers": sorted(n["identifiers"]),
+            "identifier_detail": n["identifier_detail"],
         }
         for n in nodes
     ]
@@ -762,10 +819,14 @@ def get_attachment(filename, entry_id, attachment_id):
         for att in entry.get("attachments", []):
             if att["attachment_id"] == attachment_id:
                 raw = base64.b64decode(att["data_b64"])
+                mabu_auth.log_audit(session["mabu_username"], "attachment_downloaded", f"{filename} / {entry_id} / {att['filename']}")
                 return Response(
                     raw,
                     mimetype=att.get("content_type", "application/octet-stream"),
-                    headers={"Content-Disposition": f"attachment; filename={att['filename']}"},
+                    headers={
+                        "Content-Disposition": f"attachment; filename=\"{att['filename']}\"",
+                        "X-Content-Type-Options": "nosniff",
+                    },
                 )
 
     return jsonify({"error": "Attachment not found"}), 404
@@ -794,10 +855,14 @@ def report_case():
 
     pdf_bytes = mabu_report.build_case_report_pdf(case)
     safe_title = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in case.get("title", "case"))
+    mabu_auth.log_audit(session["mabu_username"], "report_generated", f"case: {filename}")
     return Response(
         pdf_bytes,
         mimetype="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={safe_title}_report.pdf"},
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{safe_title}_report.pdf\"",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -821,10 +886,14 @@ def report_cluster():
         return jsonify({"error": "No decryptable cases found for the given filenames"}), 400
 
     pdf_bytes = mabu_report.build_cluster_report_pdf(cases)
+    mabu_auth.log_audit(session["mabu_username"], "report_generated", f"cluster: {', '.join(filenames)}")
     return Response(
         pdf_bytes,
         mimetype="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=mabu_cluster_report.pdf"},
+        headers={
+            "Content-Disposition": "attachment; filename=\"mabu_cluster_report.pdf\"",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
