@@ -2842,6 +2842,79 @@ function mabuInitCaseDetailExtras() {
 
 function mabuApplyReducedFx(enabled) {
   document.documentElement.classList.toggle("mabu-reduced-fx", enabled);
+  if (enabled) {
+    mabuStopRain();
+  } else {
+    mabuStartRain();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Background effect: falling Cyrillic characters ("digital rain"), matching
+// the Russian-rendered "МАБУ" header. Purely decorative — canvas-drawn,
+// no external assets/fonts. Respects the same reduced-motion toggle as the
+// scanline/noise overlays.
+// ---------------------------------------------------------------------------
+
+const MABU_RAIN_CHARS = "МАБУАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ0123456789";
+let mabuRainState = null;
+
+function mabuStartRain() {
+  if (mabuRainState) return; // already running
+  const canvas = document.getElementById("mabuRain");
+  if (!canvas || !canvas.getContext) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const ctx = canvas.getContext("2d");
+  const fontSize = 16;
+  let columns = 0;
+  let drops = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    columns = Math.floor(canvas.width / fontSize);
+    drops = new Array(columns).fill(0).map(() => Math.floor(Math.random() * -40));
+  }
+
+  function draw() {
+    ctx.fillStyle = "rgba(1, 4, 1, 0.08)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = `${fontSize}px "Cascadia Code", "Consolas", monospace`;
+    for (let i = 0; i < columns; i++) {
+      const char = MABU_RAIN_CHARS[Math.floor(Math.random() * MABU_RAIN_CHARS.length)];
+      const x = i * fontSize;
+      const y = drops[i] * fontSize;
+
+      ctx.fillStyle = "rgba(200, 255, 220, 0.85)";
+      ctx.fillText(char, x, y);
+      ctx.fillStyle = "rgba(0, 255, 102, 0.55)";
+      ctx.fillText(char, x, y + fontSize);
+
+      if (y > canvas.height && Math.random() > 0.975) {
+        drops[i] = 0;
+      }
+      drops[i]++;
+    }
+  }
+
+  const intervalId = setInterval(draw, 60);
+  window.addEventListener("resize", resize);
+  resize();
+
+  mabuRainState = { intervalId, resize };
+}
+
+function mabuStopRain() {
+  if (!mabuRainState) return;
+  clearInterval(mabuRainState.intervalId);
+  window.removeEventListener("resize", mabuRainState.resize);
+  const canvas = document.getElementById("mabuRain");
+  if (canvas && canvas.getContext) {
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  }
+  mabuRainState = null;
 }
 
 function mabuLoadSettingsPanel() {
