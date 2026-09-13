@@ -1265,12 +1265,16 @@ function mabuRenderVaultPage() {
       <td>
         <button class="mabu-btn-secondary mabu-btn" data-file="${mabuEscape(f.filename)}" data-action="open">open()</button>
         <button class="mabu-btn-secondary mabu-btn" data-file="${mabuEscape(f.filename)}" data-action="reader">reader()</button>
+        <button class="mabu-btn-danger" data-file="${mabuEscape(f.filename)}" data-title="${mabuEscape(f.title || f.filename)}" data-action="delete">delete</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll("button[data-action='open']").forEach((btn) => {
     btn.addEventListener("click", () => mabuOpenCaseDetail(btn.dataset.file));
+  });
+  tbody.querySelectorAll("button[data-action='delete']").forEach((btn) => {
+    btn.addEventListener("click", () => mabuDeleteCase(btn.dataset.file, btn.dataset.title));
   });
   tbody.querySelectorAll("button[data-action='reader']").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1476,12 +1480,42 @@ function mabuInitCaseTabs() {
   });
 }
 
+async function mabuDeleteCase(filename, title) {
+  const confirmed = await mabuConfirm({
+    title: "Delete case permanently?",
+    body: `"${title}" (${filename}) will be permanently deleted. This cannot be undone — there is no backup or recycle bin. Make sure you've exported/reported anything you need first.`,
+    danger: true,
+    confirmLabel: "delete permanently",
+  });
+  if (!confirmed) return;
+
+  try {
+    await mabuApi(`/api/cases/${encodeURIComponent(filename)}`, { method: "DELETE" });
+    mabuToast("success", "Case deleted", title);
+    if (mabuCurrentCaseFilename === filename) {
+      document.getElementById("caseDetailCard").hidden = true;
+      mabuCurrentCaseFilename = null;
+      mabuCurrentCaseRecord = null;
+    }
+    mabuLoadVault();
+    mabuLoadStats();
+  } catch (e) {
+    mabuToast("error", "Could not delete case", e.message);
+  }
+}
+
 function mabuInitVault() {
   document.getElementById("vaultRefreshBtn").addEventListener("click", () => {
     mabuLoadVault();
     document.getElementById("caseDetailCard").hidden = true;
     mabuCurrentCaseFilename = null;
     mabuCurrentCaseRecord = null;
+  });
+
+  document.getElementById("caseDeleteBtn").addEventListener("click", () => {
+    if (!mabuCurrentCaseFilename) return;
+    const title = mabuCurrentCaseRecord?.title || mabuCurrentCaseFilename;
+    mabuDeleteCase(mabuCurrentCaseFilename, title);
   });
 
   const runVaultSearch = async () => {

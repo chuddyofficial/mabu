@@ -521,6 +521,33 @@ def cases_set_tags(filename):
     return jsonify({"status": "ok"})
 
 
+@app.delete("/api/cases/<filename>")
+@login_required
+@mabu_csrf.csrf_protect
+def cases_delete(filename):
+    """Permanently delete a .mabu case file. Irreversible — the frontend is
+    responsible for a clear confirmation step before calling this. Does not
+    require decrypting the file first, so a passphrase-protected case can
+    still be deleted even if the passphrase has been lost."""
+    if not _safe_filename(filename):
+        return jsonify({"error": "Invalid filename"}), 400
+
+    filepath = os.path.join(VAULT_DIR, filename)
+    if not os.path.isfile(filepath):
+        return jsonify({"error": "File not found"}), 404
+
+    # Best-effort title lookup for a clearer audit-log entry — never blocks
+    # the delete itself if the file can't be decrypted with the default key.
+    title = filename
+    case = _read_case_unlocked(filepath)
+    if case:
+        title = case.get("title", filename)
+
+    os.remove(filepath)
+    mabu_auth.log_audit(session["mabu_username"], "case_deleted", f"{filename} ({title})")
+    return jsonify({"status": "ok"})
+
+
 @app.get("/api/vault/list")
 @login_required
 def vault_list():
