@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="mabuMarkGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7dffb0"/>
+      <stop offset="55%" stop-color="#00ff66"/>
+      <stop offset="100%" stop-color="#00b84c"/>
+    </linearGradient>
+    <filter id="mabuMarkGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="100" height="100" fill="#010401"/>
+
+  <polygon points="50,4 93,27 93,73 50,96 7,73 7,27"
+           fill="none" stroke="url(#mabuMarkGreen)" stroke-width="3"/>
+  <polygon points="50,14 84,32 84,68 50,86 16,68 16,32"
+           fill="none" stroke="#00ff66" stroke-width="1" opacity="0.4"/>
+
+  <text x="50" y="66" text-anchor="middle"
+        font-family="'Cascadia Code','Consolas','Courier New',monospace"
+        font-size="46" font-weight="800"
+        fill="url(#mabuMarkGreen)" filter="url(#mabuMarkGlow)">M</text>
+</svg>

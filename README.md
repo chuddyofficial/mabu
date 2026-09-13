@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/mabu-logo.svg" alt="MABU cyber team logo" width="220">
+</p>
+
 # MABU Dashboard
 
 A personal OSINT research platform for organizing and documenting publicly available digital footprint data — multi-entry case files, cross-case correlation, real WHOIS/DNS/handle lookups, and PDF reporting, behind multi-user, role-based authentication (admin/investigator). Runs locally on your own machine or on a private VPS you control.

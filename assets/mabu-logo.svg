@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <radialGradient id="mabuGlow" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#0a2e13"/>
+      <stop offset="100%" stop-color="#010401"/>
+    </radialGradient>
+    <linearGradient id="mabuGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7dffb0"/>
+      <stop offset="55%" stop-color="#00ff66"/>
+      <stop offset="100%" stop-color="#00b84c"/>
+    </linearGradient>
+    <filter id="mabuTextGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="mabuScan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="2" fill="#000" opacity="0.14"/>
+    </pattern>
+  </defs>
+
+  <!-- background -->
+  <rect width="400" height="400" fill="#010401"/>
+  <rect width="400" height="400" fill="url(#mabuGlow)"/>
+
+  <!-- hexagonal shield frame -->
+  <polygon points="200,26 356,110 356,290 200,374 44,290 44,110"
+           fill="none" stroke="url(#mabuGreen)" stroke-width="4" opacity="0.9"/>
+  <polygon points="200,50 334,122 334,278 200,350 66,278 66,122"
+           fill="none" stroke="#00ff66" stroke-width="1.2" opacity="0.35"/>
+
+  <!-- circuit accent lines -->
+  <g stroke="#00ff66" stroke-width="2" opacity="0.55" fill="none">
+    <path d="M44,110 L18,110 L18,80"/>
+    <path d="M356,110 L382,110 L382,80"/>
+    <path d="M44,290 L18,290 L18,320"/>
+    <path d="M356,290 L382,290 L382,320"/>
+    <circle cx="18" cy="80" r="4" fill="#00ff66" stroke="none"/>
+    <circle cx="382" cy="80" r="4" fill="#00ff66" stroke="none"/>
+    <circle cx="18" cy="320" r="4" fill="#00ff66" stroke="none"/>
+    <circle cx="382" cy="320" r="4" fill="#00ff66" stroke="none"/>
+  </g>
+
+  <!-- corner brackets (targeting / terminal reticle motif) -->
+  <g stroke="#00ff66" stroke-width="3" fill="none" opacity="0.8">
+    <path d="M70,90 L70,70 L92,70"/>
+    <path d="M330,90 L330,70 L308,70"/>
+    <path d="M70,310 L70,330 L92,330"/>
+    <path d="M330,310 L330,330 L308,330"/>
+  </g>
+
+  <!-- team wordmark: MABU rendered in Cyrillic -->
+  <text x="200" y="222" text-anchor="middle"
+        font-family="'Cascadia Code','Consolas','Courier New',monospace"
+        font-size="88" font-weight="700" letter-spacing="6"
+        fill="url(#mabuGreen)" filter="url(#mabuTextGlow)">МАБУ</text>
+
+  <!-- cursor underscore -->
+  <rect x="255" y="234" width="26" height="10" fill="#00ff66" filter="url(#mabuTextGlow)"/>
+
+  <!-- subtitle -->
+  <text x="200" y="268" text-anchor="middle"
+        font-family="'Cascadia Code','Consolas','Courier New',monospace"
+        font-size="15" letter-spacing="5"
+        fill="#8fffb8" opacity="0.85">CYBER TEAM</text>
+
+  <text x="200" y="290" text-anchor="middle"
+        font-family="'Cascadia Code','Consolas','Courier New',monospace"
+        font-size="10" letter-spacing="3"
+        fill="#4f9e6c" opacity="0.75">root@mabu :: research-platform</text>
+
+  <!-- scanline overlay -->
+  <rect width="400" height="400" fill="url(#mabuScan)"/>
+</svg>
