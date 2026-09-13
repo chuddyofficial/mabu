@@ -52,17 +52,28 @@ The dashboard uses a full CRT-terminal / matrix aesthetic — animated boot sequ
 ## First-time Setup
 
 ```bash
-pip install -r api/requirements.txt
 python setup.py
 ```
 
-`setup.py` will:
-1. Create the vault directory
-2. Generate the vault encryption key (`vault/.mabu-default-key`)
-3. Generate the session signing secret (`config/session-secret.key`)
-4. Prompt you to create the **admin account** — a username and a password (min 8 characters), stored as a bcrypt hash in `config/admin.json` (never plaintext)
+`setup.py` is a full installer, not just a key generator. It will:
+1. Detect your environment and check for Python dependencies, offering to `pip install` any that are missing
+2. Create the vault directory
+3. Generate the vault encryption key (`vault/.mabu-default-key`)
+4. Generate the session signing secret (`config/session-secret.key`)
+5. Prompt you to create the **admin account** — a username and a password (min 8 characters), stored as a bcrypt hash in `config/admin.json` (never plaintext)
+6. Optionally configure a **public domain** — generates ready-to-use `deploy/nginx.conf` and `deploy/mabu.service` files and prints the exact commands to install them (see the VPS deployment section below)
+7. Print a status summary of everything that's configured
 
-Re-running `setup.py` is safe — it won't overwrite an existing admin account or vault key unless you pass `--reset-admin` or `--reset-vault-key` explicitly.
+Useful flags:
+```bash
+python setup.py --reset-admin                        # replace the admin account
+python setup.py --reset-vault-key                     # regenerate the vault key (invalidates old default-key-encrypted files)
+python setup.py --domain mabu.example.com              # (re)configure the public domain + regenerate deploy/ files
+python setup.py --skip-deps                            # skip the dependency check/install step
+python setup.py --non-interactive --username admin --password-env MABU_ADMIN_PW --domain mabu.example.com   # fully scripted install
+```
+
+Re-running `setup.py` is always safe — nothing destructive happens unless you explicitly pass a `--reset-*` flag.
 
 ### Start the server
 
@@ -130,7 +141,7 @@ Two standalone tools for working with `.mabu` files outside the dashboard — a 
 
 ## Deploying to a Ubuntu VPS
 
-This assumes a fresh Ubuntu 22.04/24.04 server and a domain (or subdomain) pointed at it.
+This assumes a fresh Ubuntu 22.04/24.04 server and a domain (or subdomain) pointed at its IP already.
 
 ### 1. Server prep
 
@@ -138,7 +149,7 @@ This assumes a fresh Ubuntu 22.04/24.04 server and a domain (or subdomain) point
 sudo apt update && sudo apt install -y python3 python3-venv python3-pip nginx git
 ```
 
-### 2. Clone and configure
+### 2. Clone and run the installer with your domain
 
 ```bash
 git clone https://github.com/<your-username>/<your-repo>.git mabu
@@ -146,75 +157,40 @@ cd mabu
 python3 -m venv venv
 source venv/bin/activate
 pip install -r api/requirements.txt
-python setup.py
+python setup.py --domain mabu.yourdomain.com
 ```
 
-`setup.py` creates your admin account interactively — do this over SSH, not in a script, so the password never touches shell history or a file.
+Run this interactively over SSH (not in a script) so the admin password never touches shell history or a file. `setup.py` will:
+- generate the vault key and session secret
+- prompt you to create the admin account (bcrypt-hashed, never plaintext)
+- write `config/domain.txt` and generate `deploy/nginx.conf` + `deploy/mabu.service`, pre-filled with this server's actual paths and your domain
+- print the exact copy/paste commands for the remaining steps (repeated below)
 
-### 3. Run as a systemd service
+You can also configure the domain non-interactively later (or reconfigure it) with `python setup.py --domain mabu.yourdomain.com` — it's idempotent and won't touch an existing admin account or vault key.
 
-Create `/etc/systemd/system/mabu.service`:
-
-```ini
-[Unit]
-Description=MABU Research Platform
-After=network.target
-
-[Service]
-Type=simple
-User=mabu
-WorkingDirectory=/home/mabu/mabu/api
-Environment=PATH=/home/mabu/mabu/venv/bin
-ExecStart=/home/mabu/mabu/venv/bin/python mabu-server.py
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Also change `mabu-server.py`'s final line to bind to localhost only (it already does — `127.0.0.1:5057`) since nginx will be the public-facing side. Then:
+### 3. Install the generated systemd service
 
 ```bash
+sudo cp deploy/mabu.service /etc/systemd/system/mabu.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now mabu
 sudo systemctl status mabu
 ```
 
-Run the app as a **dedicated non-root user** (`mabu` above), not root.
+Run the app as a **dedicated non-root user**, not root — pass `--service-user yourusername` to `setup.py` if it isn't `mabu`, so the generated service file matches.
 
-### 4. nginx reverse proxy + HTTPS
-
-```nginx
-server {
-    listen 80;
-    server_name your.domain.here;
-
-    location / {
-        root /home/mabu/mabu;
-        index index.html;
-        try_files $uri $uri/ =404;
-    }
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:5057;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Then get a real certificate and force HTTPS:
+### 4. Install the generated nginx config, then get HTTPS
 
 ```bash
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/mabu
+sudo ln -sf /etc/nginx/sites-available/mabu /etc/nginx/sites-enabled/mabu
+sudo nginx -t && sudo systemctl reload nginx
+
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your.domain.here
+sudo certbot --nginx -d mabu.yourdomain.com
 ```
 
-Once HTTPS is live, set `SESSION_COOKIE_SECURE=True` in `mabu-server.py`'s `app.config.update(...)` block — the session cookie will then only ever be sent over HTTPS.
-
-Also update `js/mabu-core.js`'s `MABU_API` constant from `http://127.0.0.1:5057` to `https://your.domain.here` (or serve the frontend from the same origin behind the `/api/` proxy path above and change `MABU_API` to an empty string so requests are same-origin).
+certbot rewrites the nginx config to redirect HTTP → HTTPS automatically. Since the generated `mabu.service` already sets `MABU_PUBLIC_ORIGIN=https://mabu.yourdomain.com` in its environment, `mabu-server.py` automatically turns on `SESSION_COOKIE_SECURE` and restricts CORS to that exact origin — no manual code edits needed. The frontend (`js/mabu-core.js`) also auto-detects it's being served over http/https and calls the API same-origin through nginx's `/api/` proxy, rather than hardcoding `127.0.0.1`.
 
 ### 5. Updating via git pull
 
@@ -228,7 +204,7 @@ pip install -r api/requirements.txt   # only if dependencies changed
 sudo systemctl restart mabu
 ```
 
-**Never commit** `config/admin.json`, `config/session-secret.key`, `vault/.mabu-default-key`, or any `.mabu` file — `.gitignore` already excludes all of these, but double-check `git status` before any `git add -A` on the VPS too.
+**Never commit** `config/admin.json`, `config/session-secret.key`, `config/domain.txt`, `deploy/`, `vault/.mabu-default-key`, or any `.mabu` file — `.gitignore` already excludes all of these, but double-check `git status` before any `git add -A` on the VPS too.
 
 ### 6. Firewall
 

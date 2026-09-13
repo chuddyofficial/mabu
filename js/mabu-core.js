@@ -1,6 +1,10 @@
 /* MABU Dashboard — frontend core logic */
 
-const MABU_API = "http://127.0.0.1:5057";
+/* When served from a real web origin (http/https), talk to the API on the same
+   origin — nginx proxies /api/ to Flask (see README deployment section). When
+   opened as a local file (file://) during development, fall back to the local
+   dev server on 127.0.0.1. */
+const MABU_API = window.location.protocol.startsWith("http") ? "" : "http://127.0.0.1:5057";
 
 /* All API calls must include credentials so the session cookie is sent/stored. */
 function mabuFetch(path, options = {}) {

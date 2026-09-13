@@ -29,14 +29,24 @@ import mabu_report
 VAULT_DIR = fmt.vault_dir()
 os.makedirs(VAULT_DIR, exist_ok=True)
 
+# Set MABU_PUBLIC_ORIGIN to the site's public https:// origin once deployed behind
+# nginx+HTTPS (e.g. "https://mabu.example.com"). This flips on the Secure cookie
+# flag and restricts CORS to that exact origin instead of the permissive local-dev
+# default. Leave unset for local http://127.0.0.1 development.
+PUBLIC_ORIGIN = os.environ.get("MABU_PUBLIC_ORIGIN", "").rstrip("/")
+
 app = Flask(__name__)
 app.secret_key = mabu_auth.get_or_create_session_secret()
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    # SESSION_COOKIE_SECURE should be True once served over HTTPS (see README deployment notes)
+    SESSION_COOKIE_SECURE=bool(PUBLIC_ORIGIN),
 )
-CORS(app, supports_credentials=True)
+
+if PUBLIC_ORIGIN:
+    CORS(app, supports_credentials=True, origins=[PUBLIC_ORIGIN])
+else:
+    CORS(app, supports_credentials=True)
 
 
 # ---------------------------------------------------------------------------
