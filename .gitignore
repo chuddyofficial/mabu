@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Vault contents and encryption key are local/private research data
+vault/mabu-files/*.mabu
+vault/.mabu-default-key
+!vault/mabu-files/.gitkeep
+
+# Backups created by migrate_vault.py contain decryptable case data
+vault/mabu-files-backup-*/
+
+# Admin credentials (bcrypt hash) and session signing secret — never commit
+config/admin.json
+config/session-secret.key

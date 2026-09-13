@@ -1,0 +1,863 @@
+:root {
+  --mabu-bg: #030905;
+  --mabu-panel: #050f08;
+  --mabu-panel-alt: #08160c;
+  --mabu-border: #144d24;
+  --mabu-border-light: #1f7a38;
+  --mabu-text: #baffc9;
+  --mabu-text-dim: #6fbf8a;
+  --mabu-text-faint: #3f7a54;
+  --mabu-green: #00ff66;
+  --mabu-green-bright: #5dffa0;
+  --mabu-green-dim: #0e5c28;
+  --mabu-amber: #ffb000;
+  --mabu-red: #ff3b5c;
+  --mabu-cyan: #35fff0;
+  --mabu-gradient: linear-gradient(135deg, #00ff66 0%, #00c2a8 100%);
+  --mabu-radius: 4px;
+  --mabu-shadow: 0 0 24px rgba(0, 255, 102, 0.08), 0 8px 24px rgba(0,0,0,0.6);
+  --mabu-glow: 0 0 6px rgba(0, 255, 102, 0.55);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--mabu-bg);
+  color: var(--mabu-text);
+  font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+  font-size: 13.5px;
+}
+
+::selection {
+  background: var(--mabu-green);
+  color: #000;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--mabu-bg); }
+::-webkit-scrollbar-thumb { background: var(--mabu-border-light); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mabu-green-dim); }
+
+/* ---------------- CRT / scanline overlay ---------------- */
+
+.mabu-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 1px,
+    rgba(0, 0, 0, 0.18) 2px,
+    rgba(0, 0, 0, 0.18) 3px
+  );
+  mix-blend-mode: multiply;
+  animation: mabuFlicker 6s infinite;
+}
+
+.mabu-noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  background: radial-gradient(ellipse at center, rgba(0,255,102,0.03) 0%, rgba(0,0,0,0.35) 100%);
+}
+
+@keyframes mabuFlicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.85; }
+  94% { opacity: 1; }
+  96% { opacity: 0.9; }
+  97% { opacity: 1; }
+}
+
+@keyframes mabuTextGlowPulse {
+  0%, 100% { text-shadow: 0 0 6px rgba(0,255,102,0.5); }
+  50% { text-shadow: 0 0 12px rgba(0,255,102,0.85); }
+}
+
+.mabu-cursor {
+  display: inline-block;
+  animation: mabuBlink 1s steps(1) infinite;
+  color: var(--mabu-green);
+}
+
+@keyframes mabuBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ---------------- Boot sequence ---------------- */
+
+.mabu-boot {
+  position: fixed;
+  inset: 0;
+  background: #010401;
+  color: var(--mabu-green);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 60px;
+}
+
+.mabu-boot[hidden] {
+  display: none;
+}
+
+/* ---------------- Login screen ---------------- */
+
+.mabu-login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--mabu-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mabu-login-screen[hidden] {
+  display: none;
+}
+
+.mabu-login-box {
+  width: 100%;
+  max-width: 340px;
+  padding: 32px 28px;
+  background: var(--mabu-panel);
+  border: 1px solid var(--mabu-border-light);
+  border-radius: var(--mabu-radius);
+  box-shadow: var(--mabu-shadow);
+  text-align: center;
+}
+
+.mabu-login-title {
+  margin: 0 0 4px 0;
+  color: var(--mabu-green);
+  font-size: 22px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 8px rgba(0,255,102,0.6);
+}
+
+.mabu-login-sub {
+  margin: 0 0 20px 0;
+  font-size: 11px;
+  color: var(--mabu-text-faint);
+  text-transform: lowercase;
+}
+
+.mabu-login-box .mabu-field {
+  text-align: left;
+}
+
+.mabu-login-error {
+  color: var(--mabu-red);
+  font-size: 12px;
+  min-height: 16px;
+  margin: 10px 0 0 0;
+}
+
+.mabu-login-setup-hint {
+  color: var(--mabu-amber);
+  font-size: 11px;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.mabu-login-setup-hint code {
+  color: var(--mabu-green);
+}
+
+.mabu-boot-log {
+  margin: 0 0 24px 0;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  text-shadow: 0 0 6px rgba(0,255,102,0.6);
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.mabu-boot-bar {
+  width: 100%;
+  max-width: 480px;
+  height: 6px;
+  background: #0a1f0f;
+  border: 1px solid var(--mabu-border-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mabu-boot-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--mabu-gradient);
+  box-shadow: var(--mabu-glow);
+  transition: width 0.15s linear;
+}
+
+/* ---------------- Layout ---------------- */
+
+.mabu-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.mabu-shell[hidden] {
+  display: none;
+}
+
+/* ---------------- Sidebar ---------------- */
+.mabu-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  background: var(--mabu-panel);
+  border-right: 1px solid var(--mabu-border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-shadow: inset -1px 0 0 rgba(0,255,102,0.05);
+}
+
+.mabu-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 18px 8px;
+  border-bottom: 1px solid var(--mabu-border);
+  margin-bottom: 14px;
+}
+
+.mabu-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: #010401;
+  border: 1px solid var(--mabu-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--mabu-green);
+  box-shadow: var(--mabu-glow);
+}
+
+.mabu-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.mabu-brand-name {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--mabu-green);
+  text-shadow: 0 0 8px rgba(0,255,102,0.6);
+  animation: mabuTextGlowPulse 3s ease-in-out infinite;
+}
+
+.mabu-brand-sub {
+  font-size: 10.5px;
+  color: var(--mabu-text-faint);
+}
+
+.mabu-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mabu-nav-group {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--mabu-text-faint);
+  padding: 12px 12px 4px 12px;
+}
+
+.mabu-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--mabu-text-dim);
+  padding: 9px 12px;
+  border-radius: var(--mabu-radius);
+  font-size: 12.5px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.mabu-nav-icon {
+  width: 24px;
+  display: inline-flex;
+  justify-content: flex-start;
+  color: var(--mabu-green-dim);
+  font-size: 11px;
+}
+
+.mabu-nav-item:hover {
+  background: rgba(0, 255, 102, 0.06);
+  color: var(--mabu-text);
+  border-color: var(--mabu-border);
+}
+
+.mabu-nav-item.active {
+  background: rgba(0, 255, 102, 0.1);
+  color: var(--mabu-green-bright);
+  border: 1px solid var(--mabu-border-light);
+  box-shadow: inset 0 0 12px rgba(0,255,102,0.08);
+}
+
+.mabu-nav-item.active .mabu-nav-icon { color: var(--mabu-green); }
+
+.mabu-sidebar-footer {
+  border-top: 1px solid var(--mabu-border);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mabu-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--mabu-text-dim);
+}
+
+.mabu-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mabu-text-faint);
+  box-shadow: 0 0 6px var(--mabu-text-faint);
+}
+
+.mabu-status-dot.online {
+  background: var(--mabu-green);
+  box-shadow: 0 0 8px var(--mabu-green);
+  animation: mabuTextGlowPulse 2s ease-in-out infinite;
+}
+
+.mabu-status-dot.offline {
+  background: var(--mabu-red);
+  box-shadow: 0 0 8px var(--mabu-red);
+}
+
+.mabu-clock {
+  font-size: 11px;
+  color: var(--mabu-green-dim);
+  letter-spacing: 1px;
+}
+
+.mabu-version {
+  font-size: 10px;
+  color: var(--mabu-text-faint);
+}
+
+/* ---------------- Main ---------------- */
+.mabu-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mabu-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 30px;
+  border-bottom: 1px solid var(--mabu-border);
+  background: linear-gradient(180deg, rgba(0,255,102,0.04), transparent);
+}
+
+.mabu-topbar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--mabu-text);
+  text-transform: lowercase;
+}
+
+.mabu-prompt {
+  color: var(--mabu-green);
+  margin-right: 4px;
+}
+
+.mabu-badge {
+  font-size: 10.5px;
+  padding: 5px 12px;
+  border-radius: 2px;
+  background: rgba(0, 255, 102, 0.06);
+  color: var(--mabu-green);
+  border: 1px solid var(--mabu-border-light);
+  letter-spacing: 0.5px;
+}
+
+.mabu-content {
+  padding: 24px 30px 60px 30px;
+  overflow-y: auto;
+}
+
+.mabu-view { display: none; }
+.mabu-view.active { display: block; animation: mabuFadeIn 0.15s ease; }
+
+@keyframes mabuFadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------------- Grid & Cards ---------------- */
+.mabu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.mabu-grid[hidden] {
+  display: none;
+}
+
+.mabu-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.mabu-grid-span-2 { grid-column: 1 / -1; }
+
+.mabu-card {
+  background: var(--mabu-panel);
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  padding: 18px 20px;
+  box-shadow: var(--mabu-shadow);
+  position: relative;
+}
+
+.mabu-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--mabu-green-dim), transparent);
+}
+
+.mabu-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 13.5px;
+  color: var(--mabu-green-bright);
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.mabu-subhead {
+  font-size: 11px;
+  color: var(--mabu-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 6px 0;
+}
+
+.mabu-card-accent {
+  background: linear-gradient(135deg, rgba(0,255,102,0.05), rgba(0,194,168,0.03));
+  border: 1px solid var(--mabu-border-light);
+}
+
+.mabu-note {
+  color: var(--mabu-text-faint);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.mabu-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--mabu-text-dim);
+  font-size: 12.5px;
+  line-height: 1.85;
+}
+
+.mabu-list strong { color: var(--mabu-green); }
+
+/* ---------------- Stats ---------------- */
+.mabu-stat-row {
+  display: flex;
+  gap: 26px;
+  margin: 8px 0 14px 0;
+}
+
+.mabu-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.mabu-stat-num {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--mabu-green);
+  text-shadow: 0 0 10px rgba(0,255,102,0.5);
+}
+
+.mabu-stat-label {
+  font-size: 10.5px;
+  color: var(--mabu-text-faint);
+}
+
+.mabu-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------------- Forms ---------------- */
+.mabu-field {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mabu-field label {
+  font-size: 11px;
+  color: var(--mabu-text-dim);
+  font-weight: 600;
+}
+
+.mabu-field label::before {
+  content: "> ";
+  color: var(--mabu-green-dim);
+}
+
+.mabu-field-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mabu-field-row input,
+.mabu-field-row select {
+  flex: 1;
+}
+
+input[type="text"],
+input[type="password"],
+select,
+textarea {
+  background: #010601;
+  border: 1px solid var(--mabu-border-light);
+  color: var(--mabu-text);
+  padding: 9px 12px;
+  border-radius: var(--mabu-radius);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+  caret-color: var(--mabu-green);
+  cursor: text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--mabu-green);
+  box-shadow: 0 0 0 3px rgba(0,255,102,0.12), var(--mabu-glow);
+}
+
+textarea {
+  resize: vertical;
+  width: 100%;
+  line-height: 1.5;
+}
+
+textarea[readonly] {
+  color: var(--mabu-green-bright);
+  background: #000200;
+}
+
+/* ---------------- Buttons ---------------- */
+.mabu-btn {
+  background: transparent;
+  color: var(--mabu-green);
+  border: 1px solid var(--mabu-green-dim);
+  padding: 9px 16px;
+  border-radius: var(--mabu-radius);
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-transform: lowercase;
+}
+
+.mabu-btn:hover {
+  background: rgba(0,255,102,0.1);
+  border-color: var(--mabu-green);
+  box-shadow: var(--mabu-glow);
+}
+
+.mabu-btn:active { transform: translateY(1px); }
+
+.mabu-btn-secondary {
+  background: var(--mabu-panel-alt);
+  border: 1px solid var(--mabu-border);
+  color: var(--mabu-text-dim);
+}
+
+.mabu-btn-secondary:hover {
+  color: var(--mabu-green);
+  border-color: var(--mabu-green-dim);
+}
+
+.mabu-btn-danger {
+  background: rgba(255, 59, 92, 0.1);
+  border: 1px solid rgba(255, 59, 92, 0.4);
+  color: var(--mabu-red);
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: var(--mabu-radius);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mabu-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.mabu-save-status {
+  font-size: 12px;
+  color: var(--mabu-text-dim);
+}
+
+/* ---------------- Result / KV ---------------- */
+.mabu-result-box {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #010601;
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+}
+
+.mabu-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--mabu-border);
+  font-size: 12.5px;
+}
+
+.mabu-kv:last-child { border-bottom: none; }
+.mabu-kv span { color: var(--mabu-text-faint); }
+.mabu-kv b { color: var(--mabu-green-bright); font-weight: 600; text-align: right; word-break: break-all; }
+.mabu-mono-out { font-size: 11px; }
+
+.mabu-code {
+  background: #010601;
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  padding: 14px;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 11.5px;
+  color: var(--mabu-cyan);
+  overflow-x: auto;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---------------- Table ---------------- */
+.mabu-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+
+.mabu-table th {
+  text-align: left;
+  color: var(--mabu-text-faint);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--mabu-border-light);
+}
+
+.mabu-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--mabu-border);
+  color: var(--mabu-text-dim);
+  word-break: break-word;
+}
+
+.mabu-table tr:hover td { background: rgba(0,255,102,0.04); }
+
+.mabu-table a { color: var(--mabu-cyan); text-decoration: none; }
+.mabu-table a:hover { text-decoration: underline; }
+
+.mabu-tag {
+  display: inline-block;
+  background: rgba(0, 255, 102, 0.08);
+  color: var(--mabu-green);
+  border: 1px solid var(--mabu-border-light);
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 10.5px;
+  margin: 2px 3px 2px 0;
+}
+
+.mabu-vault-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.mabu-vault-header h3 { margin: 0; }
+
+.mabu-reader-output {
+  background: #010601;
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  padding: 16px;
+  min-height: 200px;
+  max-height: 480px;
+  overflow-y: auto;
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.mabu-reader-output h4 {
+  margin: 14px 0 4px 0;
+  color: var(--mabu-green);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mabu-reader-output p { margin: 0 0 8px 0; color: var(--mabu-text-dim); white-space: pre-wrap; }
+
+/* ---------------- Status pill (username matrix) ---------------- */
+.mabu-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--mabu-border);
+}
+
+.mabu-pill[data-status="confirmed"] { color: var(--mabu-green); border-color: var(--mabu-green-dim); background: rgba(0,255,102,0.08); }
+.mabu-pill[data-status="not_found"] { color: var(--mabu-red); border-color: rgba(255,59,92,0.4); background: rgba(255,59,92,0.08); }
+.mabu-pill[data-status="unknown"] { color: var(--mabu-amber); border-color: rgba(255,176,0,0.4); background: rgba(255,176,0,0.08); }
+
+/* ---------------- Timeline ---------------- */
+.mabu-timeline {
+  position: relative;
+  padding-left: 20px;
+  margin-top: 10px;
+}
+
+.mabu-timeline::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--mabu-border-light);
+}
+
+.mabu-timeline-item {
+  position: relative;
+  padding: 0 0 20px 20px;
+}
+
+.mabu-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--mabu-green);
+  box-shadow: var(--mabu-glow);
+}
+
+.mabu-timeline-date {
+  font-size: 10.5px;
+  color: var(--mabu-text-faint);
+}
+
+.mabu-timeline-title {
+  font-size: 13px;
+  color: var(--mabu-green-bright);
+  margin: 2px 0 4px 0;
+}
+
+.mabu-timeline-summary {
+  font-size: 12px;
+  color: var(--mabu-text-dim);
+}
+
+/* ---------------- Graph ---------------- */
+.mabu-graph-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  background: #010601;
+}
+
+.mabu-graph-svg {
+  width: 100%;
+  min-height: 360px;
+  display: block;
+}
+
+.mabu-graph-svg text {
+  fill: var(--mabu-text-dim);
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 10px;
+}
+
+.mabu-graph-svg circle.node {
+  fill: #010601;
+  stroke: var(--mabu-green);
+  stroke-width: 1.5;
+}
+
+.mabu-graph-svg line.edge {
+  stroke: var(--mabu-border-light);
+  stroke-width: 1;
+}
+
+@media (max-width: 900px) {
+  .mabu-shell { flex-direction: column; }
+  .mabu-sidebar { width: 100%; height: auto; position: relative; }
+  .mabu-grid, .mabu-grid-2 { grid-template-columns: 1fr; }
+}

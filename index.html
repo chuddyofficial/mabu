@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MABU // Dashboard</title>
+<link rel="stylesheet" href="css/mabu-styles.css">
+</head>
+<body>
+
+<div class="mabu-scanlines"></div>
+<div class="mabu-noise"></div>
+
+<!-- BOOT SEQUENCE -->
+<div class="mabu-boot" id="mabuBoot">
+  <pre class="mabu-boot-log" id="mabuBootLog"></pre>
+  <div class="mabu-boot-bar"><div class="mabu-boot-bar-fill" id="mabuBootFill"></div></div>
+</div>
+
+<!-- LOGIN GATE -->
+<div class="mabu-login-screen" id="mabuLoginScreen" hidden>
+  <div class="mabu-login-box">
+    <div class="mabu-logo" style="margin: 0 auto 14px auto;">M</div>
+    <h2 class="mabu-login-title">MABU<span class="mabu-cursor">_</span></h2>
+    <p class="mabu-login-sub">authenticate to continue</p>
+
+    <div class="mabu-field">
+      <label>username</label>
+      <input type="text" id="loginUsername" autocomplete="username">
+    </div>
+    <div class="mabu-field">
+      <label>password</label>
+      <input type="password" id="loginPassword" autocomplete="current-password">
+    </div>
+    <button class="mabu-btn" id="loginBtn" style="width:100%;">login()</button>
+    <p class="mabu-login-error" id="loginError"></p>
+    <p class="mabu-login-setup-hint" id="loginSetupHint" hidden>
+      no admin account exists yet. run <code>python setup.py</code> on the server first.
+    </p>
+  </div>
+</div>
+
+<div class="mabu-shell" id="mabuShell" hidden>
+
+  <!-- Sidebar -->
+  <aside class="mabu-sidebar">
+    <div class="mabu-brand">
+      <div class="mabu-logo">M</div>
+      <div class="mabu-brand-text">
+        <span class="mabu-brand-name">MABU<span class="mabu-cursor">_</span></span>
+        <span class="mabu-brand-sub">root@mabu:~$ research-platform</span>
+      </div>
+    </div>
+
+    <nav class="mabu-nav">
+      <div class="mabu-nav-group">core</div>
+      <button class="mabu-nav-item active" data-view="home">
+        <span class="mabu-nav-icon">[0]</span> overview
+      </button>
+      <button class="mabu-nav-item" data-view="research">
+        <span class="mabu-nav-icon">[1]</span> research
+      </button>
+      <button class="mabu-nav-item" data-view="vault">
+        <span class="mabu-nav-icon">[2]</span> vault
+      </button>
+      <button class="mabu-nav-item" data-view="reader">
+        <span class="mabu-nav-icon">[3]</span> reader
+      </button>
+      <button class="mabu-nav-item" data-view="timeline">
+        <span class="mabu-nav-icon">[4]</span> timeline
+      </button>
+      <button class="mabu-nav-item" data-view="correlate">
+        <span class="mabu-nav-icon">[5]</span> correlate
+      </button>
+
+      <div class="mabu-nav-group">lookup modules</div>
+      <button class="mabu-nav-item" data-view="lookups">
+        <span class="mabu-nav-icon">[6]</span> public records
+      </button>
+      <button class="mabu-nav-item" data-view="email">
+        <span class="mabu-nav-icon">[7]</span> email
+      </button>
+      <button class="mabu-nav-item" data-view="username">
+        <span class="mabu-nav-icon">[8]</span> username
+      </button>
+      <button class="mabu-nav-item" data-view="discord">
+        <span class="mabu-nav-icon">[9]</span> discord
+      </button>
+      <button class="mabu-nav-item" data-view="network">
+        <span class="mabu-nav-icon">[10]</span> network / ip
+      </button>
+      <button class="mabu-nav-item" data-view="toolkit">
+        <span class="mabu-nav-icon">[11]</span> hash &amp; encode
+      </button>
+    </nav>
+
+    <div class="mabu-sidebar-footer">
+      <div class="mabu-status">
+        <span class="mabu-status-dot" id="apiStatusDot"></span>
+        <span id="apiStatusText">checking api...</span>
+      </div>
+      <div class="mabu-status">
+        <span id="loggedInAsText"></span>
+        <button class="mabu-btn-danger" id="logoutBtn" style="margin-left:auto;">logout</button>
+      </div>
+      <div class="mabu-clock" id="mabuClock">--:--:--</div>
+      <span class="mabu-version">MABU v3.0 :: CASE MGMT + CORRELATION</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="mabu-main">
+
+    <header class="mabu-topbar">
+      <h1><span class="mabu-prompt">$</span> <span id="viewTitle">overview</span><span class="mabu-cursor">_</span></h1>
+      <div class="mabu-topbar-right">
+        <span class="mabu-badge">100% LOCAL // ZERO EXTERNAL CALLS</span>
+      </div>
+    </header>
+
+    <div class="mabu-content">
+
+      <!-- OVERVIEW -->
+      <section class="mabu-view active" id="view-home">
+        <div class="mabu-grid">
+          <div class="mabu-card mabu-card-accent mabu-grid-span-2">
+            <h3>&gt; welcome.txt</h3>
+            <p>MABU is a personal, locally-hosted OSINT research platform for organizing publicly available digital footprint data. Email checks, Discord snowflake analysis, username enumeration, network/IP tooling, hash &amp; encoding utilities, case timelines, and encrypted vault storage — all running on your own machine.</p>
+            <p class="mabu-note">[!] NOTICE: All data stays on 127.0.0.1. Nothing is transmitted externally. Only document information you have lawful, legitimate access to.</p>
+          </div>
+          <div class="mabu-card">
+            <h3>&gt; vault --stats</h3>
+            <div class="mabu-stat-row">
+              <div class="mabu-stat">
+                <span class="mabu-stat-num" id="statFileCount">–</span>
+                <span class="mabu-stat-label">.mabu files</span>
+              </div>
+              <div class="mabu-stat">
+                <span class="mabu-stat-num" id="statTagCount">–</span>
+                <span class="mabu-stat-label">unique tags</span>
+              </div>
+              <div class="mabu-stat">
+                <span class="mabu-stat-num" id="statIdCount">–</span>
+                <span class="mabu-stat-label">tracked IDs</span>
+              </div>
+            </div>
+            <button class="mabu-btn mabu-btn-secondary" data-goto="vault">open_vault()</button>
+          </div>
+          <div class="mabu-card">
+            <h3>&gt; quick_actions</h3>
+            <div class="mabu-quick-actions">
+              <button class="mabu-btn" data-goto="research">+ new_case()</button>
+              <button class="mabu-btn" data-goto="username">enum_username()</button>
+              <button class="mabu-btn" data-goto="discord">decode_snowflake()</button>
+              <button class="mabu-btn" data-goto="toolkit">hash_tool()</button>
+            </div>
+          </div>
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; module_manifest.log</h3>
+            <ul class="mabu-list">
+              <li><strong>[research]</strong> structured OSINT documentation form → encrypted .mabu vault entry</li>
+              <li><strong>[vault]</strong> browse / search all encrypted case files</li>
+              <li><strong>[reader]</strong> decrypt &amp; render .mabu files, export JSON</li>
+              <li><strong>[timeline]</strong> chronological case view + shared-identifier relationship graph</li>
+              <li><strong>[email]</strong> format validation, domain classification, manual platform tracker</li>
+              <li><strong>[username]</strong> cross-platform handle tracker, permutation generator, direct-check links</li>
+              <li><strong>[discord]</strong> snowflake → timestamp decoder, account-age calc, bit-layout reference</li>
+              <li><strong>[network/ip]</strong> IPv4/IPv6 classification, CIDR calculator, port reference table</li>
+              <li><strong>[hash &amp; encode]</strong> MD5/SHA1/SHA256, Base64, URL encode, JWT decoder</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- EMAIL LOOKUP -->
+      <section class="mabu-view" id="view-email">
+        <div class="mabu-grid mabu-grid-2">
+          <div class="mabu-card">
+            <h3>&gt; email --analyze</h3>
+            <div class="mabu-field">
+              <label>target_email</label>
+              <input type="text" id="emailInput" placeholder="target@example.com">
+            </div>
+            <button class="mabu-btn" id="emailAnalyzeBtn">run_analysis()</button>
+
+            <div class="mabu-result-box" id="emailResult" hidden>
+              <div class="mabu-kv"><span>valid_format</span><b id="emValid">–</b></div>
+              <div class="mabu-kv"><span>local_part</span><b id="emLocal">–</b></div>
+              <div class="mabu-kv"><span>domain</span><b id="emDomain">–</b></div>
+              <div class="mabu-kv"><span>domain_type</span><b id="emDomainType">–</b></div>
+              <div class="mabu-kv"><span>mx_resolves</span><b id="emMx">–</b></div>
+              <div class="mabu-kv"><span>disposable_heuristic</span><b id="emDisposable">–</b></div>
+            </div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; platform_tracker.db</h3>
+            <p class="mabu-note">Log platforms manually confirmed via the platform's own signup/reset check. No automated third-party querying.</p>
+            <div class="mabu-field-row">
+              <input type="text" id="platformInput" placeholder="platform (e.g. github)">
+              <select id="platformStatus">
+                <option value="confirmed">confirmed</option>
+                <option value="not_found">not_found</option>
+                <option value="unknown">unknown</option>
+              </select>
+              <button class="mabu-btn" id="platformAddBtn">add</button>
+            </div>
+            <table class="mabu-table" id="platformTable">
+              <thead><tr><th>platform</th><th>status</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- USERNAME MODULE -->
+      <section class="mabu-view" id="view-username">
+        <div class="mabu-grid mabu-grid-2">
+          <div class="mabu-card">
+            <h3>&gt; username --target</h3>
+            <div class="mabu-field">
+              <label>handle</label>
+              <input type="text" id="unameInput" placeholder="e.g. j0hndoe">
+            </div>
+            <button class="mabu-btn" id="unameGenBtn">generate_matrix()</button>
+            <p class="mabu-note">Generates direct search-URLs per platform (opens manually, no auto-querying) and tracks confirmed/unconfirmed status locally.</p>
+
+            <table class="mabu-table" id="unameMatrixTable">
+              <thead><tr><th>platform</th><th>link</th><th>status</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; permutation_engine</h3>
+            <p class="mabu-note">Generates common username variants for a first/last name or base handle — useful for building a search list.</p>
+            <div class="mabu-field-row">
+              <input type="text" id="permFirst" placeholder="first name">
+              <input type="text" id="permLast" placeholder="last name (optional)">
+              <button class="mabu-btn" id="permGenBtn">generate</button>
+            </div>
+            <div class="mabu-result-box" id="permResult" hidden>
+              <pre class="mabu-code" id="permOutput"></pre>
+            </div>
+          </div>
+
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; observed_handles.log</h3>
+            <p class="mabu-note">Manually-confirmed usernames/handles tied to this investigation, with source.</p>
+            <div class="mabu-field-row">
+              <input type="text" id="discordUserInput" placeholder="username / handle">
+              <input type="text" id="discordUserSource" placeholder="source / where observed">
+              <button class="mabu-btn" id="discordUserAddBtn">add</button>
+            </div>
+            <table class="mabu-table" id="discordUserTable">
+              <thead><tr><th>username</th><th>source</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- DISCORD TOOLS -->
+      <section class="mabu-view" id="view-discord">
+        <div class="mabu-grid mabu-grid-2">
+          <div class="mabu-card">
+            <h3>&gt; snowflake --decode</h3>
+            <div class="mabu-field">
+              <label>discord_snowflake_id</label>
+              <input type="text" id="snowflakeInput" placeholder="e.g. 175928847299117063">
+            </div>
+            <button class="mabu-btn" id="snowflakeBtn">decode()</button>
+
+            <div class="mabu-result-box" id="snowflakeResult" hidden>
+              <div class="mabu-kv"><span>timestamp_utc</span><b id="sfTimestamp">–</b></div>
+              <div class="mabu-kv"><span>object_age</span><b id="sfAge">–</b></div>
+              <div class="mabu-kv"><span>worker_id</span><b id="sfWorker">–</b></div>
+              <div class="mabu-kv"><span>process_id</span><b id="sfProcess">–</b></div>
+              <div class="mabu-kv"><span>increment</span><b id="sfIncrement">–</b></div>
+              <div class="mabu-kv"><span>unix_ms</span><b id="sfUnixMs">–</b></div>
+            </div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; snowflake_structure.h</h3>
+            <p class="mabu-note">64-bit integer encoding a timestamp + internal identifiers, relative to Discord Epoch (2015-01-01T00:00:00.000Z).</p>
+            <pre class="mabu-code">Bit layout (64 bits total):
+
+ 63                                22 21    17 16    12 11         0
+| timestamp (42 bits, ms since epoch) | worker | process | increment |
+
+DISCORD_EPOCH = 1420070400000  // unix ms
+
+timestamp  = (snowflake >> 22) + DISCORD_EPOCH
+worker_id  = (snowflake & 0x3E0000) >> 17
+process_id = (snowflake & 0x1F000)  >> 12
+increment  =  snowflake & 0xFFF</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- NETWORK / IP TOOLS -->
+      <section class="mabu-view" id="view-network">
+        <div class="mabu-grid mabu-grid-2">
+          <div class="mabu-card">
+            <h3>&gt; ip --classify</h3>
+            <div class="mabu-field">
+              <label>ip_address</label>
+              <input type="text" id="ipInput" placeholder="e.g. 192.168.1.1 or 2001:db8::1">
+            </div>
+            <button class="mabu-btn" id="ipClassifyBtn">classify()</button>
+
+            <div class="mabu-result-box" id="ipResult" hidden>
+              <div class="mabu-kv"><span>version</span><b id="ipVersion">–</b></div>
+              <div class="mabu-kv"><span>valid</span><b id="ipValid">–</b></div>
+              <div class="mabu-kv"><span>scope</span><b id="ipScope">–</b></div>
+              <div class="mabu-kv"><span>binary</span><b id="ipBinary">–</b></div>
+              <div class="mabu-kv"><span>hex</span><b id="ipHex">–</b></div>
+              <div class="mabu-kv"><span>reverse_dns_ptr</span><b id="ipPtr">–</b></div>
+            </div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; cidr --calc</h3>
+            <div class="mabu-field">
+              <label>cidr_notation</label>
+              <input type="text" id="cidrInput" placeholder="e.g. 192.168.1.0/24">
+            </div>
+            <button class="mabu-btn" id="cidrCalcBtn">calculate()</button>
+
+            <div class="mabu-result-box" id="cidrResult" hidden>
+              <div class="mabu-kv"><span>network_address</span><b id="cidrNetwork">–</b></div>
+              <div class="mabu-kv"><span>broadcast_address</span><b id="cidrBroadcast">–</b></div>
+              <div class="mabu-kv"><span>subnet_mask</span><b id="cidrMask">–</b></div>
+              <div class="mabu-kv"><span>usable_hosts</span><b id="cidrHosts">–</b></div>
+              <div class="mabu-kv"><span>first_host</span><b id="cidrFirst">–</b></div>
+              <div class="mabu-kv"><span>last_host</span><b id="cidrLast">–</b></div>
+            </div>
+          </div>
+
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; ports.ref</h3>
+            <p class="mabu-note">Common port reference table (educational).</p>
+            <table class="mabu-table" id="portsTable">
+              <thead><tr><th>port</th><th>protocol</th><th>service</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- HASH & ENCODE TOOLKIT -->
+      <section class="mabu-view" id="view-toolkit">
+        <div class="mabu-grid mabu-grid-2">
+          <div class="mabu-card">
+            <h3>&gt; hash --generate</h3>
+            <div class="mabu-field">
+              <label>input_text</label>
+              <textarea id="hashInput" rows="3" placeholder="text to hash"></textarea>
+            </div>
+            <button class="mabu-btn" id="hashGenBtn">compute()</button>
+            <div class="mabu-result-box" id="hashResult" hidden>
+              <div class="mabu-kv"><span>MD5</span><b id="hashMd5" class="mabu-mono-out">–</b></div>
+              <div class="mabu-kv"><span>SHA-1</span><b id="hashSha1" class="mabu-mono-out">–</b></div>
+              <div class="mabu-kv"><span>SHA-256</span><b id="hashSha256" class="mabu-mono-out">–</b></div>
+              <div class="mabu-kv"><span>SHA-512</span><b id="hashSha512" class="mabu-mono-out">–</b></div>
+            </div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; base64 / url --codec</h3>
+            <div class="mabu-field">
+              <label>input</label>
+              <textarea id="codecInput" rows="3" placeholder="text or encoded string"></textarea>
+            </div>
+            <div class="mabu-actions">
+              <button class="mabu-btn" id="b64EncodeBtn">base64_encode()</button>
+              <button class="mabu-btn" id="b64DecodeBtn">base64_decode()</button>
+              <button class="mabu-btn" id="urlEncodeBtn">url_encode()</button>
+              <button class="mabu-btn" id="urlDecodeBtn">url_decode()</button>
+            </div>
+            <div class="mabu-field" style="margin-top:14px;">
+              <label>output</label>
+              <textarea id="codecOutput" rows="3" readonly placeholder="result appears here"></textarea>
+            </div>
+          </div>
+
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; jwt --decode</h3>
+            <div class="mabu-field">
+              <label>jwt_token</label>
+              <input type="text" id="jwtInput" placeholder="eyJhbGciOi...">
+            </div>
+            <button class="mabu-btn" id="jwtDecodeBtn">decode()</button>
+            <div class="mabu-grid mabu-grid-2" id="jwtResult" hidden style="margin-top:14px;">
+              <div>
+                <h4 class="mabu-subhead">header</h4>
+                <pre class="mabu-code" id="jwtHeader"></pre>
+              </div>
+              <div>
+                <h4 class="mabu-subhead">payload</h4>
+                <pre class="mabu-code" id="jwtPayload"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RESEARCH -->
+      <section class="mabu-view" id="view-research">
+        <div class="mabu-card">
+          <h3>&gt; case --new</h3>
+          <p class="mabu-note">Document only publicly available information you have lawful access to. Creates a new case (with this as its first entry) in the local vault. Add more entries to the same case later from the Vault tab.</p>
+
+          <div class="mabu-grid mabu-grid-2">
+            <div class="mabu-field">
+              <label>case_title</label>
+              <input type="text" id="rTitle" placeholder="e.g. Case-0142">
+            </div>
+            <div class="mabu-field">
+              <label>investigator</label>
+              <input type="text" id="rInvestigator" placeholder="your name / handle">
+            </div>
+            <div class="mabu-field">
+              <label>email(s)</label>
+              <input type="text" id="rEmail" placeholder="public/known emails, comma separated">
+            </div>
+            <div class="mabu-field">
+              <label>phone(s)</label>
+              <input type="text" id="rPhone" placeholder="from public directories, comma separated">
+            </div>
+            <div class="mabu-field">
+              <label>username(s)</label>
+              <input type="text" id="rUsername" placeholder="public platform handles, comma separated">
+            </div>
+            <div class="mabu-field">
+              <label>name(s) / alias(es)</label>
+              <input type="text" id="rNames" placeholder="from public sources, comma separated">
+            </div>
+            <div class="mabu-field">
+              <label>ip address(es)</label>
+              <input type="text" id="rIp" placeholder="public logs / server data, comma separated">
+            </div>
+            <div class="mabu-field">
+              <label>tags</label>
+              <input type="text" id="rTags" placeholder="comma separated, e.g. phishing, discord">
+            </div>
+          </div>
+
+          <div class="mabu-field">
+            <label>summary</label>
+            <input type="text" id="rSummary" placeholder="one-line summary of this finding">
+          </div>
+
+          <div class="mabu-field">
+            <label>findings / notes</label>
+            <textarea id="rFindings" rows="6" placeholder="detailed observations..."></textarea>
+          </div>
+
+          <div class="mabu-field">
+            <label>source urls / references (one per line)</label>
+            <textarea id="rSources" rows="3" placeholder="https://..."></textarea>
+          </div>
+
+          <div class="mabu-field">
+            <label>vault passphrase (optional — leave blank for default vault key)</label>
+            <input type="password" id="rPassphrase" placeholder="passphrase to encrypt this file">
+          </div>
+
+          <div class="mabu-actions">
+            <button class="mabu-btn" id="rSaveBtn">create_case()</button>
+            <span class="mabu-save-status" id="rSaveStatus"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- VAULT -->
+      <section class="mabu-view" id="view-vault">
+        <div class="mabu-card">
+          <div class="mabu-vault-header">
+            <h3>&gt; vault --list</h3>
+            <button class="mabu-btn mabu-btn-secondary" id="vaultRefreshBtn">refresh()</button>
+          </div>
+          <div class="mabu-field-row">
+            <input type="text" id="vaultSearchInput" placeholder="grep vault (title, tags, summary)...">
+            <button class="mabu-btn" id="vaultSearchBtn">search()</button>
+          </div>
+          <table class="mabu-table" id="vaultTable">
+            <thead><tr><th>title</th><th>status</th><th>entries</th><th>updated</th><th>investigator</th><th>tags</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;" id="caseDetailCard" hidden>
+          <div class="mabu-vault-header">
+            <h3>&gt; case_detail: <span id="caseDetailTitle"></span></h3>
+            <div class="mabu-actions">
+              <select id="caseStatusSelect">
+                <option value="open">open</option>
+                <option value="closed">closed</option>
+                <option value="cold">cold</option>
+              </select>
+              <button class="mabu-btn mabu-btn-secondary" id="caseStatusApplyBtn">set_status()</button>
+              <button class="mabu-btn mabu-btn-secondary" id="caseReportBtn">download_pdf_report()</button>
+            </div>
+          </div>
+
+          <div id="caseDetailBody"></div>
+
+          <h4 class="mabu-subhead" style="margin-top:18px;">add new entry</h4>
+          <div class="mabu-grid mabu-grid-2">
+            <div class="mabu-field">
+              <label>author</label>
+              <input type="text" id="ceAuthor" placeholder="your name / handle">
+            </div>
+            <div class="mabu-field">
+              <label>emails / usernames / ips (comma separated each)</label>
+              <input type="text" id="ceEmails" placeholder="emails">
+            </div>
+          </div>
+          <div class="mabu-grid mabu-grid-2">
+            <input type="text" id="ceUsernames" placeholder="usernames">
+            <input type="text" id="ceIps" placeholder="ip addresses">
+          </div>
+          <div class="mabu-field">
+            <label>summary</label>
+            <input type="text" id="ceSummary" placeholder="one-line summary">
+          </div>
+          <div class="mabu-field">
+            <label>findings</label>
+            <textarea id="ceFindings" rows="4" placeholder="detailed observations..."></textarea>
+          </div>
+          <div class="mabu-actions">
+            <button class="mabu-btn" id="ceAddBtn">add_entry()</button>
+            <span class="mabu-save-status" id="ceStatus"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- CORRELATE -->
+      <section class="mabu-view" id="view-correlate">
+        <div class="mabu-card">
+          <div class="mabu-vault-header">
+            <h3>&gt; correlate --scan</h3>
+            <button class="mabu-btn mabu-btn-secondary" id="correlateRefreshBtn">scan_vault()</button>
+          </div>
+          <p class="mabu-note">Scans every decryptable case in the vault and auto-links cases sharing an email, username, IP, phone, or name. Clusters below represent likely-same-person groups.</p>
+          <div id="correlateClusters"></div>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;">
+          <h3>&gt; correlation_graph.svg</h3>
+          <div class="mabu-graph-wrap">
+            <svg id="correlateGraphSvg" class="mabu-graph-svg"></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- PUBLIC RECORD LOOKUPS -->
+      <section class="mabu-view" id="view-lookups">
+        <div class="mabu-grid mabu-grid-2">
+          <div class="mabu-card">
+            <h3>&gt; whois --lookup</h3>
+            <div class="mabu-field">
+              <label>domain</label>
+              <input type="text" id="whoisInput" placeholder="example.com">
+            </div>
+            <button class="mabu-btn" id="whoisBtn">run_whois()</button>
+            <div class="mabu-result-box" id="whoisResult" hidden></div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; dns --lookup</h3>
+            <div class="mabu-field">
+              <label>domain</label>
+              <input type="text" id="dnsInput" placeholder="example.com">
+            </div>
+            <button class="mabu-btn" id="dnsBtn">run_dns()</button>
+            <div class="mabu-result-box" id="dnsResult" hidden></div>
+          </div>
+
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; handle --check-live</h3>
+            <p class="mabu-note">Sends a real HTTP request to each platform's own profile URL (same as visiting it in a browser) to check whether the page exists. No third-party aggregators are queried.</p>
+            <div class="mabu-field">
+              <label>username</label>
+              <input type="text" id="handleCheckInput" placeholder="e.g. j0hndoe">
+            </div>
+            <button class="mabu-btn" id="handleCheckBtn">check_live()</button>
+            <table class="mabu-table" id="handleCheckTable" hidden>
+              <thead><tr><th>platform</th><th>url</th><th>likely exists</th><th>detail</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- READER -->
+      <section class="mabu-view" id="view-reader">
+        <div class="mabu-grid mabu-grid-2">
+          <div class="mabu-card">
+            <h3>&gt; reader --decrypt</h3>
+            <div class="mabu-field">
+              <label>select_file</label>
+              <select id="readerFileSelect"><option value="">-- choose a file --</option></select>
+            </div>
+            <div class="mabu-field">
+              <label>passphrase</label>
+              <input type="password" id="readerPassphrase" placeholder="blank = default vault key">
+            </div>
+            <button class="mabu-btn" id="readerDecryptBtn">decrypt_and_view()</button>
+            <span class="mabu-save-status" id="readerStatus"></span>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; stdout</h3>
+            <div id="readerOutput" class="mabu-reader-output">
+              <p class="mabu-note">nothing decrypted yet.</p>
+            </div>
+            <button class="mabu-btn mabu-btn-secondary" id="readerExportBtn" hidden>export_json()</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TIMELINE / GRAPH -->
+      <section class="mabu-view" id="view-timeline">
+        <div class="mabu-card">
+          <div class="mabu-vault-header">
+            <h3>&gt; timeline --render</h3>
+            <button class="mabu-btn mabu-btn-secondary" id="timelineRefreshBtn">refresh()</button>
+          </div>
+          <p class="mabu-note">Chronological view of all vault entries (decryptable with the default key). Passphrase-protected files appear locked and are excluded from the relationship graph.</p>
+          <div id="timelineTrack" class="mabu-timeline"></div>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;">
+          <h3>&gt; relationship_graph.svg</h3>
+          <p class="mabu-note">Cases are linked when they share an email, username, IP, or name. Hover a node for details.</p>
+          <div class="mabu-graph-wrap">
+            <svg id="graphSvg" class="mabu-graph-svg"></svg>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/mabu-core.js"></script>
+</body>
+</html>
