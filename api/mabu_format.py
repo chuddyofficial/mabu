@@ -207,8 +207,12 @@ def new_case(title: str, investigator: str, tags: list[str]) -> dict:
     }
 
 
+MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024  # 8 MB per file, generous for screenshots/small PDFs
+MAX_ATTACHMENTS_PER_ENTRY = 10
+
+
 def new_entry(author: str, summary: str, findings: str, emails=None, phones=None,
-              usernames=None, names=None, ips=None, sources=None) -> dict:
+              usernames=None, names=None, ips=None, sources=None, attachments=None) -> dict:
     return {
         "entry_id": uuid.uuid4().hex,
         "date": datetime.now(timezone.utc).isoformat(),
@@ -221,6 +225,27 @@ def new_entry(author: str, summary: str, findings: str, emails=None, phones=None
         "names": names or [],
         "ips": ips or [],
         "sources": sources or [],
+        "attachments": attachments or [],
+    }
+
+
+def new_attachment(filename: str, content_type: str, data_b64: str) -> dict:
+    """An attachment stored inline as base64 inside the encrypted entry.
+
+    Kept inside the .mabu file (rather than as separate files on disk) so the
+    whole case — including evidence files — stays under one Fernet-encrypted
+    container with one passphrase/key.
+    """
+    raw_len = (len(data_b64) * 3) // 4
+    if raw_len > MAX_ATTACHMENT_BYTES:
+        raise ValueError(f"attachment exceeds the {MAX_ATTACHMENT_BYTES // (1024*1024)} MB limit")
+    safe_name = "".join(c if c.isalnum() or c in ("-", "_", ".") else "_" for c in filename.strip()) or "file"
+    return {
+        "attachment_id": uuid.uuid4().hex,
+        "filename": safe_name,
+        "content_type": content_type or "application/octet-stream",
+        "data_b64": data_b64,
+        "added": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -276,3 +301,102 @@ def case_search_text(case: dict) -> str:
         for key in ("emails", "usernames", "names", "ips", "phones"):
             parts.append(" ".join(entry.get(key, [])))
     return " ".join(parts).lower()
+
+
+# ---------------------------------------------------------------------------
+# Case templates
+# ---------------------------------------------------------------------------
+
+CASE_TEMPLATES = {
+    "blank": {
+        "label": "Blank case",
+        "tags": [],
+        "summary": "",
+        "findings": "",
+    },
+    "phishing": {
+        "label": "Phishing investigation",
+        "tags": ["phishing"],
+        "summary": "Phishing attempt reported involving domain/sender: ",
+        "findings": (
+            "Sender/domain:\n"
+            "Delivery method (email/SMS/DM):\n"
+            "Payload (link/attachment):\n"
+            "Impersonated brand or person:\n"
+            "Evidence collected:\n"
+        ),
+    },
+    "impersonation": {
+        "label": "Account impersonation",
+        "tags": ["impersonation"],
+        "summary": "Impersonation account identified: ",
+        "findings": (
+            "Platform:\n"
+            "Impersonated identity:\n"
+            "Account creation date (if known):\n"
+            "Content posted:\n"
+            "Reported to platform (Y/N):\n"
+        ),
+    },
+    "harassment": {
+        "label": "Harassment / abuse tracking",
+        "tags": ["harassment"],
+        "summary": "Harassment campaign involving: ",
+        "findings": (
+            "Platform(s) involved:\n"
+            "Timeline of incidents:\n"
+            "Associated accounts/handles:\n"
+            "Evidence preserved (screenshots/logs):\n"
+        ),
+    },
+    "fraud": {
+        "label": "Fraud / scam tracking",
+        "tags": ["fraud"],
+        "summary": "Suspected fraud/scam involving: ",
+        "findings": (
+            "Scheme type:\n"
+            "Payment method(s) used:\n"
+            "Associated accounts/wallets:\n"
+            "Victims/reports identified:\n"
+        ),
+    },
+}
+
+
+def get_template(template_id: str) -> dict:
+    return CASE_TEMPLATES.get(template_id, CASE_TEMPLATES["blank"])
+
+
+def list_templates() -> list[dict]:
+    return [{"id": k, "label": v["label"]} for k, v in CASE_TEMPLATES.items()]
+
+
+# ---------------------------------------------------------------------------
+# Related-case suggestions
+# ---------------------------------------------------------------------------
+
+def draft_identifiers(emails=None, phones=None, usernames=None, names=None, ips=None) -> set:
+    ids = set()
+    for group in (emails, phones, usernames, names, ips):
+        for v in (group or []):
+            if v:
+                ids.add(v.strip().lower())
+    return ids
+
+
+def find_related_cases(draft_ids: set, all_cases: list[dict]) -> list[dict]:
+    """all_cases: list of {"filename": ..., **case_dict}. Returns matches with shared identifiers."""
+    related = []
+    for case in all_cases:
+        case_ids = set()
+        for entry in case.get("entries", []):
+            for key in ("emails", "phones", "usernames", "names", "ips"):
+                case_ids.update(v.strip().lower() for v in entry.get(key, []) if v)
+        shared = draft_ids & case_ids
+        if shared:
+            related.append({
+                "filename": case.get("filename"),
+                "title": case.get("title"),
+                "shared": sorted(shared),
+            })
+    return related

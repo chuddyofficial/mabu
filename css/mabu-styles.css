@@ -586,6 +586,35 @@ textarea {
   line-height: 1.5;
 }
 
+input[type="file"] {
+  background: #010601;
+  border: 1px dashed var(--mabu-border-light);
+  color: var(--mabu-text-dim);
+  padding: 9px 12px;
+  border-radius: var(--mabu-radius);
+  font-size: 12px;
+  font-family: inherit;
+  width: 100%;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  background: transparent;
+  color: var(--mabu-green);
+  border: 1px solid var(--mabu-green-dim);
+  border-radius: var(--mabu-radius);
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-family: inherit;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: rgba(0,255,102,0.1);
+  border-color: var(--mabu-green);
+}
+
 textarea[readonly] {
   color: var(--mabu-green-bright);
   background: #000200;

@@ -92,6 +92,11 @@
       <button class="mabu-nav-item" data-view="toolkit">
         <span class="mabu-nav-icon">[11]</span> hash &amp; encode
       </button>
+
+      <div class="mabu-nav-group" id="adminNavGroup" hidden>admin</div>
+      <button class="mabu-nav-item" data-view="admin" id="adminNavBtn" hidden>
+        <span class="mabu-nav-icon">[12]</span> users &amp; audit
+      </button>
     </nav>
 
     <div class="mabu-sidebar-footer">
@@ -412,6 +417,16 @@ increment  =  snowflake & 0xFFF</pre>
           <h3>&gt; case --new</h3>
           <p class="mabu-note">Document only publicly available information you have lawful access to. Creates a new case (with this as its first entry) in the local vault. Add more entries to the same case later from the Vault tab.</p>
 
+          <div class="mabu-field">
+            <label>template</label>
+            <select id="rTemplate"><option value="blank">Blank case</option></select>
+          </div>
+
+          <div id="rRelatedWarning" class="mabu-result-box" hidden style="border-color: var(--mabu-amber);">
+            <div class="mabu-kv"><span>[!] possible match</span><b>this identifier appears in existing case(s)</b></div>
+            <div id="rRelatedList"></div>
+          </div>
+
           <div class="mabu-grid mabu-grid-2">
             <div class="mabu-field">
               <label>case_title</label>
@@ -485,6 +500,16 @@ increment  =  snowflake & 0xFFF</pre>
             <input type="text" id="vaultSearchInput" placeholder="grep vault (title, tags, summary)...">
             <button class="mabu-btn" id="vaultSearchBtn">search()</button>
           </div>
+          <div class="mabu-field-row">
+            <select id="vaultTagFilter"><option value="">-- filter by tag --</option></select>
+            <select id="vaultStatusFilter">
+              <option value="">-- any status --</option>
+              <option value="open">open</option>
+              <option value="closed">closed</option>
+              <option value="cold">cold</option>
+            </select>
+            <button class="mabu-btn mabu-btn-secondary" id="vaultFilterBtn">apply_filters()</button>
+          </div>
           <table class="mabu-table" id="vaultTable">
             <thead><tr><th>title</th><th>status</th><th>entries</th><th>updated</th><th>investigator</th><th>tags</th><th></th></tr></thead>
             <tbody></tbody>
@@ -503,6 +528,11 @@ increment  =  snowflake & 0xFFF</pre>
               <button class="mabu-btn mabu-btn-secondary" id="caseStatusApplyBtn">set_status()</button>
               <button class="mabu-btn mabu-btn-secondary" id="caseReportBtn">download_pdf_report()</button>
             </div>
+          </div>
+
+          <div class="mabu-field-row">
+            <input type="text" id="caseTagsInput" placeholder="tags, comma separated">
+            <button class="mabu-btn mabu-btn-secondary" id="caseTagsApplyBtn">update_tags()</button>
           </div>
 
           <div id="caseDetailBody"></div>
@@ -529,6 +559,10 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-field">
             <label>findings</label>
             <textarea id="ceFindings" rows="4" placeholder="detailed observations..."></textarea>
+          </div>
+          <div class="mabu-field">
+            <label>attachments (screenshots, docs — max 8MB each)</label>
+            <input type="file" id="ceAttachments" multiple>
           </div>
           <div class="mabu-actions">
             <button class="mabu-btn" id="ceAddBtn">add_entry()</button>
@@ -592,6 +626,39 @@ increment  =  snowflake & 0xFFF</pre>
               <tbody></tbody>
             </table>
           </div>
+
+          <div class="mabu-card">
+            <h3>&gt; phone --lookup</h3>
+            <p class="mabu-note">Local parsing via libphonenumber — no external API. Region/carrier data comes from bundled offline databases.</p>
+            <div class="mabu-field-row">
+              <input type="text" id="phoneInput" placeholder="+14155552671">
+              <input type="text" id="phoneRegion" placeholder="region (e.g. US)" style="max-width:110px;" value="US">
+            </div>
+            <button class="mabu-btn" id="phoneLookupBtn">run_lookup()</button>
+            <div class="mabu-result-box" id="phoneResult" hidden></div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; breach --check</h3>
+            <p class="mabu-note" id="breachStatusNote">checking configuration...</p>
+            <div class="mabu-field">
+              <label>email</label>
+              <input type="text" id="breachInput" placeholder="target@example.com">
+            </div>
+            <button class="mabu-btn" id="breachCheckBtn">check_hibp()</button>
+            <div class="mabu-result-box" id="breachResult" hidden></div>
+          </div>
+
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; image --metadata</h3>
+            <p class="mabu-note">Extracts EXIF data (camera info, timestamps, embedded GPS coordinates) from an image file, entirely locally — nothing is uploaded anywhere else.</p>
+            <div class="mabu-field">
+              <label>select image</label>
+              <input type="file" id="imageMetaInput" accept="image/*">
+            </div>
+            <button class="mabu-btn" id="imageMetaBtn">extract_metadata()</button>
+            <div class="mabu-result-box" id="imageMetaResult" hidden></div>
+          </div>
         </div>
       </section>
 
@@ -639,6 +706,43 @@ increment  =  snowflake & 0xFFF</pre>
           <div class="mabu-graph-wrap">
             <svg id="graphSvg" class="mabu-graph-svg"></svg>
           </div>
+        </div>
+      </section>
+
+      <!-- ADMIN: USERS & AUDIT LOG -->
+      <section class="mabu-view" id="view-admin">
+        <div class="mabu-card">
+          <div class="mabu-vault-header">
+            <h3>&gt; users --list</h3>
+            <button class="mabu-btn mabu-btn-secondary" id="usersRefreshBtn">refresh()</button>
+          </div>
+          <div class="mabu-grid mabu-grid-2">
+            <input type="text" id="newUserUsername" placeholder="username">
+            <input type="password" id="newUserPassword" placeholder="password (min 8 chars)">
+          </div>
+          <div class="mabu-field-row">
+            <select id="newUserRole">
+              <option value="investigator">investigator</option>
+              <option value="admin">admin</option>
+            </select>
+            <button class="mabu-btn" id="newUserBtn">create_user()</button>
+          </div>
+          <span class="mabu-save-status" id="usersStatus"></span>
+          <table class="mabu-table" id="usersTable">
+            <thead><tr><th>username</th><th>role</th><th>active</th><th>created</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="mabu-card" style="margin-top:18px;">
+          <div class="mabu-vault-header">
+            <h3>&gt; audit_log.jsonl</h3>
+            <button class="mabu-btn mabu-btn-secondary" id="auditRefreshBtn">refresh()</button>
+          </div>
+          <table class="mabu-table" id="auditTable">
+            <thead><tr><th>time</th><th>actor</th><th>action</th><th>detail</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </section>
 

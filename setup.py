@@ -55,6 +55,8 @@ REQUIRED_PACKAGES = [
     ("bcrypt", "bcrypt>=4.0.0"),
     ("whois", "python-whois>=0.9.0"),
     ("reportlab", "reportlab>=4.0.0"),
+    ("phonenumbers", "phonenumbers>=8.13.0"),
+    ("PIL", "Pillow>=10.0.0"),
 ]
 
 BANNER = r"""

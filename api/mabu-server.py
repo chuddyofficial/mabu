@@ -2,28 +2,34 @@
 MABU Server — local/VPS Flask backend for the MABU Dashboard.
 
 Provides:
-  - Authentication (single admin account, bcrypt + server-side session)
-  - Case management (multi-entry cases, status, activity log)
+  - Multi-user authentication (admin/investigator roles, bcrypt, rate-limited
+    login, CSRF-protected session cookies, audit log)
+  - Case management (multi-entry cases, status, activity log, attachments,
+    tags, templates, related-case suggestions)
   - Multi-case correlation engine
-  - Public-record lookups (WHOIS, DNS, handle-existence checks)
+  - Public-record lookups (WHOIS, DNS, handle-existence, phone metadata,
+    opt-in HIBP breach check)
   - PDF report generation
   - Vault listing / search / decryption
 
-Run `python setup.py` first to create the admin account and generate keys.
+Run `python setup.py` first to create the first admin account and generate keys.
 """
 
+import base64
 import os
 import socket
 from datetime import datetime, timezone
 from functools import wraps
 
-from flask import Flask, jsonify, request, session
+from flask import Flask, jsonify, request, session, Response
 from flask_cors import CORS
 from cryptography.fernet import InvalidToken
 
 import mabu_auth
+import mabu_csrf
 import mabu_format as fmt
 import mabu_lookups
+import mabu_media
 import mabu_report
 
 VAULT_DIR = fmt.vault_dir()
@@ -44,13 +50,13 @@ app.config.update(
 )
 
 if PUBLIC_ORIGIN:
-    CORS(app, supports_credentials=True, origins=[PUBLIC_ORIGIN])
+    CORS(app, supports_credentials=True, origins=[PUBLIC_ORIGIN], expose_headers=["X-CSRF-Token"])
 else:
-    CORS(app, supports_credentials=True)
+    CORS(app, supports_credentials=True, expose_headers=["X-CSRF-Token"])
 
 
 # ---------------------------------------------------------------------------
-# Auth
+# Auth decorators
 # ---------------------------------------------------------------------------
 
 def login_required(view):
@@ -61,6 +67,28 @@ def login_required(view):
         return view(*a, **kw)
     return wrapped
 
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*a, **kw):
+        if not session.get("mabu_authed"):
+            return jsonify({"error": "Not authenticated"}), 401
+        if session.get("mabu_role") != "admin":
+            return jsonify({"error": "Admin role required"}), 403
+        return view(*a, **kw)
+    return wrapped
+
+
+def get_client_ip() -> str:
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
+# ---------------------------------------------------------------------------
+# Health / auth
+# ---------------------------------------------------------------------------
 
 @app.get("/api/health")
 def health():
@@ -74,10 +102,13 @@ def health():
 
 @app.get("/api/auth/status")
 def auth_status():
+    authed = bool(session.get("mabu_authed"))
     return jsonify({
         "configured": mabu_auth.is_configured(),
-        "authenticated": bool(session.get("mabu_authed")),
+        "authenticated": authed,
         "username": session.get("mabu_username"),
+        "role": session.get("mabu_role"),
+        "csrf_token": mabu_csrf.get_or_create_csrf_token() if authed else None,
     })
 
 
@@ -89,31 +120,127 @@ def auth_login():
     data = request.get_json(force=True, silent=True) or {}
     username = data.get("username", "")
     password = data.get("password", "")
+    ip = get_client_ip()
 
-    if mabu_auth.verify_login(username, password):
+    if mabu_auth.is_rate_limited(username, ip):
+        return jsonify({"error": "Too many failed attempts. Try again in a few minutes."}), 429
+
+    user = mabu_auth.verify_login(username, password, ip)
+    if user:
         session["mabu_authed"] = True
-        session["mabu_username"] = username
+        session["mabu_username"] = user["username"]
+        session["mabu_role"] = user["role"]
+        session["mabu_user_id"] = user["user_id"]
         session.permanent = True
-        return jsonify({"status": "ok", "username": username})
+        return jsonify({"status": "ok", "username": user["username"], "role": user["role"], "csrf_token": mabu_csrf.get_or_create_csrf_token()})
 
     return jsonify({"error": "Invalid username or password"}), 401
 
 
 @app.post("/api/auth/logout")
+@login_required
 def auth_logout():
+    mabu_auth.log_audit(session.get("mabu_username", "unknown"), "logout", "")
     session.clear()
     return jsonify({"status": "ok"})
 
 
 @app.post("/api/auth/change-password")
 @login_required
+@mabu_csrf.csrf_protect
 def auth_change_password():
     data = request.get_json(force=True, silent=True) or {}
     try:
-        mabu_auth.change_password(data.get("current_password", ""), data.get("new_password", ""))
+        mabu_auth.change_password(session["mabu_username"], data.get("current_password", ""), data.get("new_password", ""))
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     return jsonify({"status": "ok"})
+
+
+# ---------------------------------------------------------------------------
+# User management (admin only)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/users")
+@admin_required
+def users_list():
+    return jsonify({"users": mabu_auth.list_users()})
+
+
+@app.post("/api/users")
+@admin_required
+@mabu_csrf.csrf_protect
+def users_create():
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        user = mabu_auth.create_user(data.get("username", ""), data.get("password", ""), data.get("role", "investigator"), actor=session["mabu_username"])
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"status": "ok", "user": user})
+
+
+@app.post("/api/users/<username>/deactivate")
+@admin_required
+@mabu_csrf.csrf_protect
+def users_deactivate(username):
+    try:
+        mabu_auth.set_user_active(username, False, session["mabu_username"])
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"status": "ok"})
+
+
+@app.post("/api/users/<username>/reactivate")
+@admin_required
+@mabu_csrf.csrf_protect
+def users_reactivate(username):
+    try:
+        mabu_auth.set_user_active(username, True, session["mabu_username"])
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"status": "ok"})
+
+
+@app.post("/api/users/<username>/role")
+@admin_required
+@mabu_csrf.csrf_protect
+def users_set_role(username):
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        mabu_auth.set_user_role(username, data.get("role", ""), session["mabu_username"])
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"status": "ok"})
+
+
+@app.post("/api/users/<username>/reset-password")
+@admin_required
+@mabu_csrf.csrf_protect
+def users_reset_password(username):
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        mabu_auth.admin_reset_password(username, data.get("new_password", ""), session["mabu_username"])
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"status": "ok"})
+
+
+@app.delete("/api/users/<username>")
+@admin_required
+@mabu_csrf.csrf_protect
+def users_delete(username):
+    try:
+        mabu_auth.delete_user(username, session["mabu_username"])
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"status": "ok"})
+
+
+@app.get("/api/audit-log")
+@admin_required
+def audit_log():
+    limit = min(int(request.args.get("limit", 200)), 1000)
+    return jsonify({"entries": mabu_auth.read_audit_log(limit)})
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +275,7 @@ def _read_case_unlocked(filepath: str) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# Email domain check (kept from v1)
+# Email domain check
 # ---------------------------------------------------------------------------
 
 @app.get("/api/email/domain-check")
@@ -167,11 +294,58 @@ def email_domain_check():
 
 
 # ---------------------------------------------------------------------------
+# Case templates
+# ---------------------------------------------------------------------------
+
+@app.get("/api/templates")
+@login_required
+def templates_list():
+    return jsonify({"templates": fmt.list_templates()})
+
+
+@app.get("/api/templates/<template_id>")
+@login_required
+def templates_get(template_id):
+    return jsonify(fmt.get_template(template_id))
+
+
+# ---------------------------------------------------------------------------
+# Related-case suggestions (before saving a new case)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/cases/related")
+@login_required
+def cases_related():
+    data = request.get_json(force=True, silent=True) or {}
+    draft_ids = fmt.draft_identifiers(
+        emails=data.get("emails", []),
+        phones=data.get("phones", []),
+        usernames=data.get("usernames", []),
+        names=data.get("names", []),
+        ips=data.get("ips", []),
+    )
+    if not draft_ids:
+        return jsonify({"related": []})
+
+    all_cases = []
+    for fname in sorted(os.listdir(VAULT_DIR)):
+        if not fname.endswith(".mabu"):
+            continue
+        case = _read_case_unlocked(os.path.join(VAULT_DIR, fname))
+        if case:
+            all_cases.append({"filename": fname, **case})
+
+    related = fmt.find_related_cases(draft_ids, all_cases)
+    return jsonify({"related": related})
+
+
+# ---------------------------------------------------------------------------
 # Case management
 # ---------------------------------------------------------------------------
 
 @app.post("/api/cases/create")
 @login_required
+@mabu_csrf.csrf_protect
 def cases_create():
     data = request.get_json(force=True, silent=True) or {}
     title = data.get("title", "Untitled Case")
@@ -199,12 +373,14 @@ def cases_create():
 
     filename = fmt.mabu_filename_for(case["title"])
     _save_case(case, filename, passphrase)
+    mabu_auth.log_audit(session["mabu_username"], "case_created", filename)
 
     return jsonify({"status": "ok", "filename": filename, "case_id": case["case_id"]})
 
 
 @app.post("/api/cases/<filename>/entries")
 @login_required
+@mabu_csrf.csrf_protect
 def cases_add_entry(filename):
     if not _safe_filename(filename):
         return jsonify({"error": "Invalid filename"}), 400
@@ -217,6 +393,16 @@ def cases_add_entry(filename):
     except (InvalidToken, ValueError) as e:
         return jsonify({"error": str(e)}), 400
 
+    attachments = []
+    for att in data.get("attachments", []):
+        try:
+            attachments.append(fmt.new_attachment(att.get("filename", "file"), att.get("content_type", ""), att.get("data_b64", "")))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    if len(attachments) > fmt.MAX_ATTACHMENTS_PER_ENTRY:
+        return jsonify({"error": f"too many attachments (max {fmt.MAX_ATTACHMENTS_PER_ENTRY} per entry)"}), 400
+
     entry = fmt.new_entry(
         author=data.get("author") or session.get("mabu_username", "Unknown"),
         summary=data.get("summary", ""),
@@ -227,15 +413,18 @@ def cases_add_entry(filename):
         names=data.get("names", []),
         ips=data.get("ips", []),
         sources=data.get("sources", []),
+        attachments=attachments,
     )
     fmt.add_entry(case, entry)
     _save_case(case, filename, passphrase)
+    mabu_auth.log_audit(session["mabu_username"], "entry_added", f"{filename} / {entry['entry_id']}")
 
     return jsonify({"status": "ok", "entry_id": entry["entry_id"]})
 
 
 @app.post("/api/cases/<filename>/status")
 @login_required
+@mabu_csrf.csrf_protect
 def cases_set_status(filename):
     if not _safe_filename(filename):
         return jsonify({"error": "Invalid filename"}), 400
@@ -251,12 +440,38 @@ def cases_set_status(filename):
     except (InvalidToken, ValueError) as e:
         return jsonify({"error": str(e)}), 400
 
+    mabu_auth.log_audit(session["mabu_username"], "status_changed", f"{filename} -> {status}")
+    return jsonify({"status": "ok"})
+
+
+@app.post("/api/cases/<filename>/tags")
+@login_required
+@mabu_csrf.csrf_protect
+def cases_set_tags(filename):
+    if not _safe_filename(filename):
+        return jsonify({"error": "Invalid filename"}), 400
+
+    data = request.get_json(force=True, silent=True) or {}
+    passphrase = data.get("passphrase") or None
+    tags = data.get("tags", [])
+
+    try:
+        case = _load_case(filename, passphrase)
+        case["tags"] = tags
+        fmt.log_activity(case, "tags_updated", f"{session.get('mabu_username', 'Unknown')}: {', '.join(tags)}")
+        _save_case(case, filename, passphrase)
+    except (InvalidToken, ValueError) as e:
+        return jsonify({"error": str(e)}), 400
+
     return jsonify({"status": "ok"})
 
 
 @app.get("/api/vault/list")
 @login_required
 def vault_list():
+    tag_filter = request.args.get("tag", "").strip().lower()
+    status_filter = request.args.get("status", "").strip().lower()
+
     files = []
     for fname in sorted(os.listdir(VAULT_DIR)):
         if not fname.endswith(".mabu"):
@@ -266,19 +481,25 @@ def vault_list():
         mtime = datetime.fromtimestamp(os.path.getmtime(filepath), tz=timezone.utc).isoformat()
 
         if case:
+            tags = case.get("tags", [])
+            status = case.get("status", "open")
+            if tag_filter and tag_filter not in [t.lower() for t in tags]:
+                continue
+            if status_filter and status_filter != status.lower():
+                continue
             files.append({
                 "filename": fname,
                 "case_id": case.get("case_id"),
                 "title": case.get("title"),
-                "status": case.get("status", "open"),
+                "status": status,
                 "created": case.get("created"),
                 "updated": case.get("updated"),
                 "investigator": case.get("investigator"),
-                "tags": case.get("tags", []),
+                "tags": tags,
                 "entry_count": len(case.get("entries", [])),
                 "locked": False,
             })
-        else:
+        elif not tag_filter and not status_filter:
             files.append({
                 "filename": fname,
                 "case_id": None,
@@ -293,6 +514,19 @@ def vault_list():
             })
 
     return jsonify({"files": files, "count": len(files)})
+
+
+@app.get("/api/vault/tags")
+@login_required
+def vault_tags():
+    tag_set = set()
+    for fname in sorted(os.listdir(VAULT_DIR)):
+        if not fname.endswith(".mabu"):
+            continue
+        case = _read_case_unlocked(os.path.join(VAULT_DIR, fname))
+        if case:
+            tag_set.update(t.lower() for t in case.get("tags", []))
+    return jsonify({"tags": sorted(tag_set)})
 
 
 @app.get("/api/vault/search")
@@ -467,6 +701,76 @@ def lookup_handle():
     return jsonify(mabu_lookups.handle_check_all(username))
 
 
+@app.get("/api/lookup/phone")
+@login_required
+def lookup_phone():
+    number = request.args.get("number", "").strip()
+    region = request.args.get("region", "US").strip().upper()
+    if not number:
+        return jsonify({"error": "number is required"}), 400
+    return jsonify(mabu_lookups.phone_lookup(number, region))
+
+
+@app.get("/api/lookup/breach")
+@login_required
+def lookup_breach():
+    email = request.args.get("email", "").strip()
+    if not email:
+        return jsonify({"error": "email is required"}), 400
+    return jsonify(mabu_lookups.hibp_breach_check(email))
+
+
+@app.get("/api/lookup/breach-status")
+@login_required
+def lookup_breach_status():
+    return jsonify({"configured": mabu_lookups.hibp_is_configured()})
+
+
+@app.post("/api/lookup/image-metadata")
+@login_required
+@mabu_csrf.csrf_protect
+def lookup_image_metadata():
+    data = request.get_json(force=True, silent=True) or {}
+    data_b64 = data.get("data_b64", "")
+    if not data_b64:
+        return jsonify({"error": "data_b64 is required"}), 400
+    return jsonify(mabu_media.extract_metadata_from_b64(data_b64))
+
+
+# ---------------------------------------------------------------------------
+# Attachments
+# ---------------------------------------------------------------------------
+
+@app.post("/api/cases/<filename>/attachments/<entry_id>/<attachment_id>")
+@login_required
+def get_attachment(filename, entry_id, attachment_id):
+    """Fetch a single attachment's raw bytes for download/preview."""
+    if not _safe_filename(filename):
+        return jsonify({"error": "Invalid filename"}), 400
+
+    data = request.get_json(force=True, silent=True) or {}
+    passphrase = data.get("passphrase") or None
+
+    try:
+        case = _load_case(filename, passphrase)
+    except (InvalidToken, ValueError) as e:
+        return jsonify({"error": str(e)}), 400
+
+    for entry in case.get("entries", []):
+        if entry["entry_id"] != entry_id:
+            continue
+        for att in entry.get("attachments", []):
+            if att["attachment_id"] == attachment_id:
+                raw = base64.b64decode(att["data_b64"])
+                return Response(
+                    raw,
+                    mimetype=att.get("content_type", "application/octet-stream"),
+                    headers={"Content-Disposition": f"attachment; filename={att['filename']}"},
+                )
+
+    return jsonify({"error": "Attachment not found"}), 404
+
+
 # ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
@@ -489,7 +793,6 @@ def report_case():
         return jsonify({"error": str(e)}), 400
 
     pdf_bytes = mabu_report.build_case_report_pdf(case)
-    from flask import Response
     safe_title = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in case.get("title", "case"))
     return Response(
         pdf_bytes,
@@ -518,7 +821,6 @@ def report_cluster():
         return jsonify({"error": "No decryptable cases found for the given filenames"}), 400
 
     pdf_bytes = mabu_report.build_cluster_report_pdf(cases)
-    from flask import Response
     return Response(
         pdf_bytes,
         mimetype="application/pdf",
