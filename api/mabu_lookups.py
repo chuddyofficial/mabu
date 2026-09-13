@@ -28,16 +28,19 @@ USER_AGENT = "Mozilla/5.0 (compatible; MABU-local-research-tool/1.0)"
 HIBP_API_KEY_ENV = "MABU_HIBP_API_KEY"
 HIBP_API_BASE = "https://haveibeenpwned.com/api/v3"
 
-# platform -> (profile URL template, "not found" signal)
+# platform -> profile URL template. Each platform also gets a bespoke
+# existence check in _check_platform() below — a bare HTTP status code is
+# NOT a reliable "exists" signal for most of these sites. Several serve a
+# 200 OK "not found" / login-wall / challenge page to any request that
+# doesn't look like a real browser session, which would otherwise show
+# every username (even made-up ones) as "likely exists". Platforms that
+# can't be checked reliably this way are intentionally left out rather
+# than shown with misleading results.
 HANDLE_PLATFORMS = {
     "GitHub": "https://github.com/{u}",
-    "Reddit": "https://www.reddit.com/user/{u}/about.json",
     "GitLab": "https://gitlab.com/{u}",
-    "Instagram": "https://www.instagram.com/{u}/",
-    "TikTok": "https://www.tiktok.com/@{u}",
-    "Twitch": "https://www.twitch.tv/{u}",
-    "Steam": "https://steamcommunity.com/id/{u}",
-    "Telegram": "https://t.me/{u}",
+    "Reddit": "https://www.reddit.com/user/{u}/about.json",
+    "Steam": "https://steamcommunity.com/id/{u}?xml=1",
 }
 
 
@@ -90,24 +93,86 @@ def dns_lookup(domain: str) -> dict:
     return result
 
 
-def _check_url_exists(url: str) -> tuple[bool, str]:
-    req = Request(url, headers={"User-Agent": USER_AGENT})
+def _fetch(url: str) -> tuple[int | None, str, str | None]:
+    """Returns (status_code, body_text, error). body_text is '' on non-2xx/3xx
+    responses read via HTTPError, since many of these platforms put useful
+    "not found" markers in a 404 page body, not just the status code."""
+    req = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "*/*"})
     try:
         with urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
-            return resp.status < 400, f"HTTP {resp.status}"
+            body = resp.read(65536).decode("utf-8", errors="replace")
+            return resp.status, body, None
     except HTTPError as e:
-        return e.code < 400, f"HTTP {e.code}"
+        try:
+            body = e.read(65536).decode("utf-8", errors="replace")
+        except Exception:
+            body = ""
+        return e.code, body, None
     except URLError as e:
-        return False, f"unreachable: {e.reason}"
+        return None, "", f"unreachable: {e.reason}"
     except Exception as e:
-        return False, f"error: {e}"
+        return None, "", f"error: {e}"
+
+
+def _check_github_gitlab(url: str) -> tuple[bool | None, str]:
+    status, _body, err = _fetch(url)
+    if err:
+        return None, err
+    if status == 404:
+        return False, "HTTP 404 (not found)"
+    if status and status < 400:
+        return True, f"HTTP {status}"
+    return None, f"HTTP {status} (inconclusive)"
+
+
+def _check_reddit(url: str) -> tuple[bool | None, str]:
+    status, body, err = _fetch(url)
+    if err:
+        return None, err
+    if status == 404:
+        return False, "HTTP 404 (not found)"
+    if status == 403 or status == 429:
+        return None, f"HTTP {status} (blocked/rate-limited by Reddit — inconclusive)"
+    if status and status < 400:
+        # Reddit's own API marks a suspended/shadowbanned/nonexistent user
+        # with an explicit error body even on a 200-family response.
+        if '"error"' in body and ("USER_REQUIRED" in body or "NOT_FOUND" in body.upper()):
+            return False, "account not found (per Reddit API response)"
+        return True, f"HTTP {status}"
+    return None, f"HTTP {status} (inconclusive)"
+
+
+def _check_steam(url: str) -> tuple[bool | None, str]:
+    status, body, err = _fetch(url)
+    if err:
+        return None, err
+    if status and status < 400:
+        # The XML profile endpoint returns <response><error>The specified
+        # profile could not be found.</error></response> for a nonexistent
+        # vanity URL, still with a 200 status — the HTML page does the same
+        # thing invisibly, which is why the XML variant is used here.
+        if "<error>" in body.lower():
+            return False, "profile not found (per Steam XML response)"
+        if "<steamid64>" in body.lower() or "<steamid>" in body.lower():
+            return True, f"HTTP {status}"
+        return None, f"HTTP {status} (unrecognized response format)"
+    return None, f"HTTP {status} (inconclusive)"
+
+
+PLATFORM_CHECKERS = {
+    "GitHub": _check_github_gitlab,
+    "GitLab": _check_github_gitlab,
+    "Reddit": _check_reddit,
+    "Steam": _check_steam,
+}
 
 
 def handle_check_all(username: str) -> dict:
     results = []
     for platform, template in HANDLE_PLATFORMS.items():
         url = template.format(u=username)
-        exists, detail = _check_url_exists(url)
+        checker = PLATFORM_CHECKERS[platform]
+        exists, detail = checker(url)
         results.append({
             "platform": platform,
             "url": url,

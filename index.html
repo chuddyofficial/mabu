@@ -313,7 +313,7 @@
       <section class="mabu-view" id="view-discord">
         <div class="mabu-grid mabu-grid-2">
           <div class="mabu-card">
-            <h3>&gt; snowflake --decode</h3>
+            <h3>&gt; snowflake --decode <span class="mabu-provenance" data-kind="analyst">local only</span></h3>
             <div class="mabu-field">
               <label for="snowflakeInput">discord_snowflake_id</label>
               <input type="text" id="snowflakeInput" placeholder="e.g. 175928847299117063">
@@ -344,6 +344,60 @@ timestamp  = (snowflake >> 22) + DISCORD_EPOCH
 worker_id  = (snowflake & 0x3E0000) >> 17
 process_id = (snowflake & 0x1F000)  >> 12
 increment  =  snowflake & 0xFFF</pre>
+          </div>
+
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; snowflake --batch <span class="mabu-provenance" data-kind="analyst">local only</span></h3>
+            <p class="mabu-note">Decode multiple snowflakes at once (user/message/server/channel IDs) — useful for timeline-ordering several observed IDs in a case or comparing account ages. One ID per line.</p>
+            <div class="mabu-field">
+              <label for="sfBatchInput">snowflake_ids (one per line)</label>
+              <textarea id="sfBatchInput" rows="4" placeholder="175928847299117063&#10;250862656526598144&#10;..."></textarea>
+            </div>
+            <div class="mabu-actions">
+              <button class="mabu-btn" id="sfBatchBtn">decode_all()</button>
+              <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--mabu-text-dim);">
+                <input type="checkbox" id="sfBatchSort" checked style="width:auto;"> sort by timestamp
+              </label>
+            </div>
+            <div class="mabu-table-wrap">
+              <table class="mabu-table" id="sfBatchTable" hidden>
+                <thead><tr><th>snowflake</th><th>timestamp (utc)</th><th>age</th><th>worker</th><th>process</th><th>increment</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; invite / message-link --parse <span class="mabu-provenance" data-kind="analyst">local only</span></h3>
+            <p class="mabu-note">Extracts the invite code, or the guild/channel/message snowflakes embedded in a message link. Parsing only — does not resolve the invite or fetch the message.</p>
+            <div class="mabu-field">
+              <label for="discordLinkInput">invite url / message link</label>
+              <input type="text" id="discordLinkInput" placeholder="discord.gg/abc123 or https://discord.com/channels/G/C/M">
+            </div>
+            <button class="mabu-btn" id="discordLinkBtn">parse()</button>
+            <div class="mabu-result-box" id="discordLinkResult" hidden></div>
+          </div>
+
+          <div class="mabu-card">
+            <h3>&gt; cdn --decode <span class="mabu-provenance" data-kind="analyst">local only</span></h3>
+            <p class="mabu-note">Decodes a Discord CDN asset URL or raw hash (avatar/icon/banner/emoji/splash) — asset type, image format, animated flag, and the owner ID embedded in the path. Does not fetch the image.</p>
+            <div class="mabu-field">
+              <label for="cdnInput">cdn url or hash</label>
+              <input type="text" id="cdnInput" placeholder="https://cdn.discordapp.com/avatars/123.../a_abcdef123456.gif">
+            </div>
+            <button class="mabu-btn" id="cdnDecodeBtn">decode()</button>
+            <div class="mabu-result-box" id="cdnResult" hidden></div>
+          </div>
+
+          <div class="mabu-card mabu-grid-span-2">
+            <h3>&gt; username --format-check <span class="mabu-provenance" data-kind="analyst">local only</span></h3>
+            <p class="mabu-note">Discord retired the legacy Name#1234 discriminator system in 2023 in favor of unique lowercase usernames. Format alone hints at which era a handle is likely from.</p>
+            <div class="mabu-field">
+              <label for="discordTagInput">username or name#discriminator</label>
+              <input type="text" id="discordTagInput" placeholder="e.g. j0hndoe or OldName#1234">
+            </div>
+            <button class="mabu-btn" id="discordTagBtn">check()</button>
+            <div class="mabu-result-box" id="discordTagResult" hidden></div>
           </div>
         </div>
       </section>
@@ -754,7 +808,7 @@ increment  =  snowflake & 0xFFF</pre>
 
           <div class="mabu-card mabu-grid-span-2">
             <h3>&gt; handle --check-live <span class="mabu-provenance" data-kind="source">public infra</span></h3>
-            <p class="mabu-note">Sends a real HTTP request to each platform's own profile URL (same as visiting it in a browser) to check whether the page exists. No third-party aggregators are queried. "Likely exists" reflects an HTTP status code, not confirmed account ownership.</p>
+            <p class="mabu-note">Sends a real HTTP request to each platform's own profile endpoint and inspects the actual response (not just the HTTP status code) to judge whether the profile exists. No third-party aggregators are queried. Limited to platforms where a nonexistent profile can be reliably distinguished from one that exists — several popular platforms (Instagram, TikTok, Twitch, Telegram) serve the same generic page/status to bots regardless of whether the account is real, so they're intentionally left out rather than shown with misleading results. "Inconclusive" means the platform responded in a way that couldn't be confidently classified (e.g. rate-limited) — not a "no."</p>
             <div class="mabu-field">
               <label for="handleCheckInput">username</label>
               <input type="text" id="handleCheckInput" placeholder="e.g. j0hndoe">

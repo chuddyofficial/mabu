@@ -661,6 +661,226 @@ function mabuInitDiscord() {
     document.getElementById("sfIncrement").textContent = increment.toString();
     document.getElementById("sfUnixMs").textContent = timestampMs.toString();
   });
+
+  mabuInitSnowflakeBatch();
+  mabuInitDiscordLinkParser();
+  mabuInitCdnDecoder();
+  mabuInitDiscordTagCheck();
+}
+
+function mabuDecodeSnowflake(raw) {
+  const snowflake = BigInt(raw);
+  const timestampMs = (snowflake >> 22n) + DISCORD_EPOCH;
+  const workerId = (snowflake & 0x3E0000n) >> 17n;
+  const processId = (snowflake & 0x1F000n) >> 12n;
+  const increment = snowflake & 0xFFFn;
+  const date = new Date(Number(timestampMs));
+  const ageMs = Date.now() - date.getTime();
+  const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+  return {
+    raw,
+    timestampMs,
+    date,
+    ageDays,
+    workerId,
+    processId,
+    increment,
+  };
+}
+
+function mabuInitSnowflakeBatch() {
+  document.getElementById("sfBatchBtn").addEventListener("click", () => {
+    const lines = document.getElementById("sfBatchInput").value
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const table = document.getElementById("sfBatchTable");
+    const tbody = table.querySelector("tbody");
+    const sortByTime = document.getElementById("sfBatchSort").checked;
+
+    if (!lines.length) {
+      mabuToast("warning", "No IDs entered", "Paste one or more snowflake IDs, one per line.");
+      return;
+    }
+
+    const results = [];
+    const errors = [];
+    lines.forEach((raw) => {
+      if (!/^\d{15,20}$/.test(raw)) {
+        errors.push(raw);
+        return;
+      }
+      try {
+        results.push(mabuDecodeSnowflake(raw));
+      } catch (e) {
+        errors.push(raw);
+      }
+    });
+
+    if (sortByTime) results.sort((a, b) => Number(a.timestampMs - b.timestampMs));
+
+    table.hidden = false;
+    tbody.innerHTML = results.map((r) => `
+      <tr>
+        <td>${mabuEscape(r.raw)}</td>
+        <td>${r.date.toISOString().replace("T", " ").replace("Z", " UTC")}</td>
+        <td>${r.ageDays.toLocaleString()}d</td>
+        <td>${r.workerId}</td>
+        <td>${r.processId}</td>
+        <td>${r.increment}</td>
+      </tr>
+    `).join("") || `<tr><td colspan="6" class="mabu-note">no valid snowflakes found.</td></tr>`;
+
+    if (errors.length) {
+      mabuToast("warning", "Some lines skipped", `${errors.length} line(s) were not valid snowflake IDs.`);
+    } else {
+      mabuToast("success", "Decoded", `${results.length} snowflake(s) decoded${sortByTime ? ", sorted by timestamp" : ""}.`);
+    }
+  });
+}
+
+/* ---------------- Discord invite / message-link parser ---------------- */
+
+function mabuInitDiscordLinkParser() {
+  document.getElementById("discordLinkBtn").addEventListener("click", () => {
+    const raw = document.getElementById("discordLinkInput").value.trim();
+    const box = document.getElementById("discordLinkResult");
+    if (!raw) return;
+
+    box.hidden = false;
+
+    const inviteMatch = raw.match(/(?:discord\.gg\/|discord(?:app)?\.com\/invite\/)([a-zA-Z0-9-]+)/i);
+    const msgMatch = raw.match(/discord(?:app)?\.com\/channels\/(@me|\d+)\/(\d+)\/(\d+)/i);
+
+    if (msgMatch) {
+      const [, guildId, channelId, messageId] = msgMatch;
+      const isDM = guildId === "@me";
+      let html = `
+        <div class="mabu-kv"><span>link type</span><b>message link${isDM ? " (DM)" : ""}</b></div>
+        <div class="mabu-kv"><span>guild_id</span><b>${isDM ? "(direct message — no guild)" : mabuEscape(guildId)}</b></div>
+        <div class="mabu-kv"><span>channel_id</span><b>${mabuEscape(channelId)}</b></div>
+        <div class="mabu-kv"><span>message_id</span><b>${mabuEscape(messageId)}</b></div>
+      `;
+      try {
+        const decoded = mabuDecodeSnowflake(messageId);
+        html += `<div class="mabu-kv"><span>message sent</span><b>${decoded.date.toISOString().replace("T", " ").replace("Z", " UTC")}</b></div>`;
+      } catch (e) { /* ignore */ }
+      box.innerHTML = html;
+    } else if (inviteMatch) {
+      box.innerHTML = `
+        <div class="mabu-kv"><span>link type</span><b>server invite</b></div>
+        <div class="mabu-kv"><span>invite_code</span><b>${mabuEscape(inviteMatch[1])}</b></div>
+        <p class="mabu-note" style="margin-top:8px;">Invite codes don't encode a timestamp or guild ID directly — resolving which server/channel this points to would require querying Discord's API, which MABU does not do.</p>
+      `;
+    } else {
+      box.innerHTML = `<p class="mabu-note">Not recognized as a Discord invite link or message link. Expected formats: discord.gg/&lt;code&gt;, discord.com/invite/&lt;code&gt;, or discord.com/channels/&lt;guild&gt;/&lt;channel&gt;/&lt;message&gt;.</p>`;
+    }
+  });
+}
+
+/* ---------------- Discord CDN asset decoder ---------------- */
+
+const DISCORD_CDN_ASSET_TYPES = {
+  avatars: "user avatar",
+  banners: "user banner",
+  icons: "guild icon",
+  splashes: "guild splash",
+  "discovery-splashes": "guild discovery splash",
+  emojis: "custom emoji",
+  "app-icons": "application icon",
+  stickers: "sticker",
+};
+
+function mabuInitCdnDecoder() {
+  document.getElementById("cdnDecodeBtn").addEventListener("click", () => {
+    const raw = document.getElementById("cdnInput").value.trim();
+    const box = document.getElementById("cdnResult");
+    if (!raw) return;
+    box.hidden = false;
+
+    // Match either a full CDN URL (cdn.discordapp.com/<type>/<owner_id>/<hash>.<ext>)
+    // or a bare "<owner_id>/<hash>.<ext>" / just a hash.
+    const urlMatch = raw.match(/cdn\.discordapp\.com\/([a-z-]+)\/(\d+)\/([a-zA-Z0-9_]+)\.(\w+)/i);
+    const bareMatch = !urlMatch && raw.match(/^(\d+)\/([a-zA-Z0-9_]+)\.(\w+)$/);
+    const hashOnly = !urlMatch && !bareMatch && raw.match(/^(a_)?[a-fA-F0-9]{32}$/);
+
+    if (urlMatch) {
+      const [, assetType, ownerId, hash, ext] = urlMatch;
+      const animated = hash.startsWith("a_");
+      let html = `
+        <div class="mabu-kv"><span>asset type</span><b>${mabuEscape(DISCORD_CDN_ASSET_TYPES[assetType] || assetType)}</b></div>
+        <div class="mabu-kv"><span>owner id</span><b>${mabuEscape(ownerId)}</b></div>
+        <div class="mabu-kv"><span>hash</span><b>${mabuEscape(hash)}</b></div>
+        <div class="mabu-kv"><span>format</span><b>${mabuEscape(ext.toLowerCase())}</b></div>
+        <div class="mabu-kv"><span>animated</span><b>${animated ? "yes (a_ prefix)" : "no"}</b></div>
+      `;
+      try {
+        const decoded = mabuDecodeSnowflake(ownerId);
+        html += `<div class="mabu-kv"><span>owner id created</span><b>${decoded.date.toISOString().replace("T", " ").replace("Z", " UTC")}</b></div>`;
+      } catch (e) { /* ignore */ }
+      box.innerHTML = html;
+    } else if (bareMatch) {
+      const [, ownerId, hash, ext] = bareMatch;
+      const animated = hash.startsWith("a_");
+      box.innerHTML = `
+        <div class="mabu-kv"><span>owner id</span><b>${mabuEscape(ownerId)}</b></div>
+        <div class="mabu-kv"><span>hash</span><b>${mabuEscape(hash)}</b></div>
+        <div class="mabu-kv"><span>format</span><b>${mabuEscape(ext.toLowerCase())}</b></div>
+        <div class="mabu-kv"><span>animated</span><b>${animated ? "yes (a_ prefix)" : "no"}</b></div>
+      `;
+    } else if (hashOnly) {
+      const hash = hashOnly[0];
+      const animated = hash.startsWith("a_");
+      box.innerHTML = `
+        <div class="mabu-kv"><span>hash</span><b>${mabuEscape(hash)}</b></div>
+        <div class="mabu-kv"><span>animated</span><b>${animated ? "yes (a_ prefix)" : "no"}</b></div>
+        <p class="mabu-note" style="margin-top:8px;">No owner ID or format present in a bare hash — paste the full CDN URL for those fields.</p>
+      `;
+    } else {
+      box.innerHTML = `<p class="mabu-note">Not recognized. Expected a cdn.discordapp.com asset URL, an "&lt;id&gt;/&lt;hash&gt;.&lt;ext&gt;" path, or a bare 32-character hash.</p>`;
+    }
+  });
+}
+
+/* ---------------- Username/tag format check ---------------- */
+
+function mabuInitDiscordTagCheck() {
+  document.getElementById("discordTagBtn").addEventListener("click", () => {
+    const raw = document.getElementById("discordTagInput").value.trim();
+    const box = document.getElementById("discordTagResult");
+    if (!raw) return;
+    box.hidden = false;
+
+    const legacyMatch = raw.match(/^(.{2,32})#(\d{4})$/);
+    const isLegacySpecialCase = legacyMatch && legacyMatch[2] === "0000";
+
+    if (legacyMatch && !isLegacySpecialCase) {
+      box.innerHTML = `
+        <div class="mabu-kv"><span>format</span><b>legacy Name#Discriminator</b></div>
+        <div class="mabu-kv"><span>display name</span><b>${mabuEscape(legacyMatch[1])}</b></div>
+        <div class="mabu-kv"><span>discriminator</span><b>${mabuEscape(legacyMatch[2])}</b></div>
+        <p class="mabu-note" style="margin-top:8px;">This format was retired in 2023. Discriminators are no longer assigned to new/migrated accounts, so this handle was likely captured before the migration (or the account never migrated to a unique username).</p>
+      `;
+      return;
+    }
+
+    const uniqueUsernameRe = /^[a-z0-9_.]{2,32}$/;
+    if (uniqueUsernameRe.test(raw)) {
+      const hasDot = raw.includes(".");
+      box.innerHTML = `
+        <div class="mabu-kv"><span>format</span><b>unique username (post-2023)</b></div>
+        <div class="mabu-kv"><span>username</span><b>${mabuEscape(raw)}</b></div>
+        <div class="mabu-kv"><span>valid characters</span><b>yes (lowercase, digits, underscore, period)</b></div>
+        ${hasDot ? '<div class="mabu-kv"><span>note</span><b>a single non-leading/trailing period is allowed</b></div>' : ""}
+        <p class="mabu-note" style="margin-top:8px;">Consistent with the current unique-username system — no discriminator needed. Doesn't confirm the account exists; this is a format check only.</p>
+      `;
+    } else {
+      box.innerHTML = `
+        <div class="mabu-kv"><span>format</span><b>does not match either known format</b></div>
+        <p class="mabu-note" style="margin-top:8px;">Not a valid legacy "Name#1234" or current unique-username pattern (lowercase letters, digits, underscore, single period, 2-32 chars). Could be a display/nickname rather than the actual username.</p>
+      `;
+    }
+  });
 }
 
 /* ---------------- Network / IP Tools ---------------- */
@@ -2030,12 +2250,13 @@ function mabuInitLookups() {
     try {
       const { data } = await mabuApi(`/api/lookup/handle?username=${encodeURIComponent(username)}`);
       const checkedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+      const existsLabel = (v) => (v === true ? "likely yes" : v === false ? "likely no" : "inconclusive");
       tbody.innerHTML = data.results.map((r) => `
         <tr>
           <td>${mabuEscape(r.platform)}</td>
           <td><a href="${r.url}" target="_blank" rel="noopener noreferrer">${mabuEscape(r.url)}</a></td>
           <td>${mabuEscape(r.detail)}</td>
-          <td>${r.likely_exists ? "yes" : "no"}</td>
+          <td>${existsLabel(r.likely_exists)}</td>
           <td>${checkedAt} UTC</td>
         </tr>
       `).join("");
