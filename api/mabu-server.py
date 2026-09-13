@@ -835,9 +835,11 @@ if __name__ == "__main__":
         print("  Run this first:  python setup.py")
         print("=" * 60)
 
+    debug_mode = not PUBLIC_ORIGIN
     print("=" * 60)
     print("  MABU Server starting")
     print(f"  Vault directory: {VAULT_DIR}")
     print("  Listening on http://127.0.0.1:5057")
+    print(f"  Debug mode: {'ON (local dev only)' if debug_mode else 'OFF (public origin configured)'}")
     print("=" * 60)
-    app.run(host="127.0.0.1", port=5057, debug=True)
+    app.run(host="127.0.0.1", port=5057, debug=debug_mode)
