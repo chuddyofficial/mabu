@@ -280,12 +280,17 @@ html, body {
   text-align: center;
 }
 
-.mabu-login-title {
-  margin: 0 0 4px 0;
-  color: var(--mabu-green);
-  font-size: 22px;
-  letter-spacing: 3px;
-  text-shadow: 0 0 8px rgba(0,255,102,0.6);
+/* Login heading is the full emblem (it already contains the МАБУ wordmark);
+   the img alt text keeps the heading's accessible name. */
+.mabu-login-emblem {
+  margin: -6px 0 6px 0;
+  line-height: 0;
+}
+
+.mabu-login-emblem img {
+  width: 168px;
+  height: auto;
+  max-width: 100%;
 }
 
 .mabu-login-sub {
@@ -381,20 +386,13 @@ html, body {
   margin-bottom: 14px;
 }
 
+/* The hex mark carries its own frame, so no box/border here — just a glow
+   that follows the hexagon's outline. */
 .mabu-logo {
   width: 36px;
   height: 36px;
-  border-radius: 4px;
-  background: #010401;
-  border: 1px solid var(--mabu-green);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-weight: 800;
-  font-size: 16px;
-  color: var(--mabu-green);
-  box-shadow: var(--mabu-glow);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(0,255,102,0.35));
 }
 
 .mabu-logo img {
