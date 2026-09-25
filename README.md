@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/mabu-logo.svg" alt="MABU cyber team logo" width="220">
+  <img src="assets/mabu-logo.svg" alt="MABU cyber team logo" width="260">
 </p>
 
 # MABU Dashboard
@@ -17,6 +17,9 @@ mabu-dashboard/
 │   └── mabu-styles.css       # MABU dark theme styling
 ├── js/
 │   └── mabu-core.js          # MABU frontend functionality
+├── assets/
+│   ├── mabu-logo.svg         # full emblem (README, login screen)
+│   └── mabu-mark.svg         # compact hex "М" mark (sidebar, favicon)
 ├── api/
 │   ├── mabu-server.py        # Flask backend — auth, cases, correlation, lookups, reports
 │   ├── mabu_auth.py          # Multi-user auth: roles, bcrypt, rate limiting, audit log
