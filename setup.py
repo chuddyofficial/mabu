@@ -184,13 +184,16 @@ server {{
 
     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'" always;
 
-    location / {{
-        root {base_dir};
-        index index.html;
-        try_files $uri $uri/ =404;
-    }}
+    # Attachments are up to 8 MB each, 10 per entry, sent base64-encoded in one
+    # JSON request; nginx's 1 MB default would reject all but tiny files.
+    client_max_body_size 110m;
 
-    location /api/ {{
+    # Everything is proxied to the MABU server, which serves only the dashboard
+    # (index.html, css/, js/, assets/) and /api/. nginx must never serve files
+    # from the install directory directly: it also holds the vault key and
+    # encrypted cases (vault/), the session secret and user database (config/),
+    # and .git/ — a plain `root` here would publish all of them.
+    location / {{
         proxy_pass http://127.0.0.1:5057;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -222,7 +225,7 @@ RestartSec=3
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=true
+ProtectHome={protect_home}
 ReadWritePaths={base_dir}/config {base_dir}/vault
 ProtectKernelTunables=true
 ProtectKernelModules=true
@@ -259,8 +262,15 @@ def write_domain_config(domain: str, service_user: str):
     with open(NGINX_TEMPLATE_PATH, "w", encoding="utf-8") as f:
         f.write(NGINX_TEMPLATE.format(domain=domain, base_dir=BASE_DIR.replace("\\", "/")))
 
+    base_dir = BASE_DIR.replace("\\", "/")
+    # ProtectHome=true hides /home and /root entirely, so a checkout living there
+    # (e.g. ~/mabu) couldn't even chdir into its own api/ dir. Read-only still
+    # blocks writes; ReadWritePaths re-opens just config/ and vault/.
+    in_home = base_dir == "/root" or base_dir.startswith(("/home/", "/root/"))
+    protect_home = "read-only" if in_home else "true"
     with open(SYSTEMD_TEMPLATE_PATH, "w", encoding="utf-8") as f:
-        f.write(SYSTEMD_TEMPLATE.format(domain=domain, base_dir=BASE_DIR.replace("\\", "/"), service_user=service_user))
+        f.write(SYSTEMD_TEMPLATE.format(domain=domain, base_dir=base_dir, service_user=service_user,
+                                        protect_home=protect_home))
 
 
 def get_configured_domain() -> str | None:
