@@ -1,26 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="mabuMarkTitle">
-  <title id="mabuMarkTitle">МАБУ</title>
+  <title id="mabuMarkTitle">MABU</title>
   <defs>
-    <radialGradient id="mabuMarkBody" cx="50%" cy="35%" r="70%">
-      <stop offset="0" stop-color="#0b2a15"/>
-      <stop offset="1" stop-color="#010603"/>
+    <linearGradient id="mabuMarkGold" gradientUnits="userSpaceOnUse" x1="0" y1="9" x2="0" y2="55">
+      <stop offset="0" stop-color="#E6CB7A"/>
+      <stop offset="0.5" stop-color="#C8A24A"/>
+      <stop offset="1" stop-color="#9A7A2E"/>
+    </linearGradient>
+    <radialGradient id="mabuMarkDisc" cx="50%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#16263D"/>
+      <stop offset="1" stop-color="#0B1626"/>
     </radialGradient>
-    <linearGradient id="mabuMarkRim" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#b6ffd0"/>
-      <stop offset="0.35" stop-color="#00ff66"/>
-      <stop offset="1" stop-color="#008f3c"/>
-    </linearGradient>
-    <linearGradient id="mabuMarkInk" gradientUnits="userSpaceOnUse" x1="0" y1="18.56" x2="0" y2="45.44">
-      <stop offset="0" stop-color="#d4ffe2"/>
-      <stop offset="0.45" stop-color="#3dff8c"/>
-      <stop offset="1" stop-color="#00c853"/>
-    </linearGradient>
-    <filter id="mabuMarkGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="1.1" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
   </defs>
-  <polygon points="32,1.5 58.41,16.75 58.41,47.25 32,62.5 5.59,47.25 5.59,16.75" fill="url(#mabuMarkBody)" stroke="url(#mabuMarkRim)" stroke-width="3" stroke-linejoin="miter"/>
-  <polygon points="32,7 53.65,19.5 53.65,44.5 32,57 10.35,44.5 10.35,19.5" fill="none" stroke="#00ff66" stroke-width="0.8" opacity="0.4"/>
-  <path fill="url(#mabuMarkInk)" filter="url(#mabuMarkGlow)" transform="translate(21.08 18.56) scale(0.42)" d="M0 64V0h12l14 20 14-20h12v64H40V22L26 42 12 22v42z"/>
+  <circle cx="32" cy="32" r="31" fill="url(#mabuMarkDisc)"/>
+  <circle cx="32" cy="32" r="30.25" fill="none" stroke="url(#mabuMarkGold)" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="28.6" fill="none" stroke="#C8A24A" stroke-opacity="0.35" stroke-width="0.6"/>
+  <circle cx="32" cy="32" r="22.5" fill="url(#mabuMarkGold)"/>
+  <path d="M32 23.8L54.59 36.84M39.1 27.9L39.1 53.98M39.1 36.1L16.51 49.14M32 40.2L9.41 27.16M24.9 36.1L24.9 10.02M24.9 27.9L47.49 14.86" stroke="#0B1626" stroke-width="1.7" stroke-linecap="round"/>
+  <polygon points="32,23.8 39.1,27.9 39.1,36.1 32,40.2 24.9,36.1 24.9,27.9" fill="#0B1626"/>
+  <circle cx="32" cy="32" r="2.1" fill="#C8A24A" fill-opacity="0.85"/>
 </svg>

@@ -95,18 +95,55 @@ function mabuHandleSessionExpired() {
   }, 1200);
 }
 
+/* ---------------- Icons + small render helpers ---------------- */
+
+/* Icons are <symbol>s defined once in index.html. */
+function mabuIcon(name) {
+  return `<svg class="mabu-ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+}
+
+const MABU_TOAST_ICONS = { success: "check-circle", info: "info", warning: "alert", error: "x-circle" };
+
+const MABU_STATUS_LABELS = {
+  confirmed: "Confirmed",
+  not_found: "Not found",
+  unknown: "Unknown",
+  open: "Open",
+  closed: "Closed",
+  cold: "Cold",
+};
+
+function mabuStatusLabel(code) {
+  return MABU_STATUS_LABELS[code] || code || "–";
+}
+
+/* Case status as a small badge (open / closed / cold). */
+function mabuStatusBadge(status) {
+  const s = status || "open";
+  return `<span class="mabu-status-badge" data-status="${mabuEscape(s)}">${mabuEscape(mabuStatusLabel(s))}</span>`;
+}
+
+/* "creation_date" -> "Creation date" for raw API keys shown as labels. */
+function mabuHumanizeKey(key) {
+  const s = String(key).replace(/_/g, " ").trim();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function mabuFormatUtc(iso) {
+  return (iso || "").replace("T", " ").slice(0, 19);
+}
+
 /* ---------------- Toast / notification system ---------------- */
 
 function mabuToast(type, title, message, opts = {}) {
   const stack = document.getElementById("mabuToastStack");
   if (!stack) return;
 
-  const icons = { success: "OK", info: "i", warning: "!", error: "X" };
   const el = document.createElement("div");
   el.className = "mabu-toast";
   el.dataset.type = type;
   el.innerHTML = `
-    <span class="mabu-toast-icon">${icons[type] || "i"}</span>
+    <span class="mabu-toast-icon">${mabuIcon(MABU_TOAST_ICONS[type] || "info")}</span>
     <span class="mabu-toast-body">
       ${title ? `<div class="mabu-toast-title">${mabuEscape(title)}</div>` : ""}
       <div>${mabuEscape(message || "")}</div>
@@ -161,15 +198,15 @@ function mabuRenderNotificationPanel() {
   mabuUpdateNotifBadge();
 
   if (!list.length) {
-    return `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">·</div><h4>No notifications</h4><p>Activity from this session will appear here.</p></div>`;
+    return `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("bell")}</div><h4>No notifications</h4><p>Activity from this session will appear here.</p></div>`;
   }
   return list.slice(0, 20).map((n) => `
-    <div class="mabu-toast" style="position:static; animation:none; margin-bottom:8px;" data-type="${n.type}">
-      <span class="mabu-toast-icon">${{ success: "OK", info: "i", warning: "!", error: "X" }[n.type] || "i"}</span>
+    <div class="mabu-toast mabu-toast-static" data-type="${mabuEscape(n.type)}">
+      <span class="mabu-toast-icon">${mabuIcon(MABU_TOAST_ICONS[n.type] || "info")}</span>
       <span class="mabu-toast-body">
         <div class="mabu-toast-title">${mabuEscape(n.title || "")}</div>
         <div>${mabuEscape(n.message || "")}</div>
-        <div style="color:var(--mabu-text-faint); font-size:10px; margin-top:4px;">${mabuEscape((n.time || "").slice(0, 19).replace("T", " "))}</div>
+        <div class="mabu-toast-meta">${mabuEscape(mabuFormatUtc(n.time))} UTC</div>
       </span>
     </div>
   `).join("");
@@ -177,7 +214,7 @@ function mabuRenderNotificationPanel() {
 
 /* ---------------- Confirmation modal ---------------- */
 
-function mabuConfirm({ title, body, danger = false, confirmLabel = "confirm" }) {
+function mabuConfirm({ title, body, danger = false, confirmLabel = "Confirm" }) {
   return new Promise((resolve) => {
     const overlay = document.getElementById("mabuModalOverlay");
     const modal = document.getElementById("mabuModal");
@@ -186,6 +223,7 @@ function mabuConfirm({ title, body, danger = false, confirmLabel = "confirm" }) 
     const confirmBtn = document.getElementById("mabuModalConfirm");
     const cancelBtn = document.getElementById("mabuModalCancel");
     confirmBtn.textContent = confirmLabel;
+    cancelBtn.textContent = "Cancel";
     modal.classList.toggle("mabu-modal-danger", !!danger);
 
     function cleanup(result) {
@@ -207,22 +245,13 @@ function mabuConfirm({ title, body, danger = false, confirmLabel = "confirm" }) 
   });
 }
 
-/* ---------------- Boot sequence ---------------- */
+/* ---------------- Startup screen ---------------- */
 
-const MABU_BOOT_LINES = [
-  `MABU SYSTEM v${MABU_VERSION} :: private research workstation`,
-  "initializing core ... OK",
-  "loading authentication ... OK",
-  "mounting vault ... OK",
-  "decrypting case index ... OK",
-  "loading correlation engine ... OK",
-  "loading research modules ... OK",
-  "",
-  "checking for unauthorized access ... 1 flagged",
-  "last session: unknown terminal, unknown location",
-  "someone else has been reading these files",
-  "",
-  "SYSTEM READY_",
+const MABU_BOOT_STEPS = [
+  "Loading interface",
+  "Loading analysis modules",
+  "Preparing case vault",
+  "Preparing secure sign-in",
 ];
 
 function mabuRunBoot(done) {
@@ -231,8 +260,8 @@ function mabuRunBoot(done) {
   const bootEl = document.getElementById("mabuBoot");
 
   let i = 0;
-  let printed = "";
   let finished = false;
+  logEl.innerHTML = "";
 
   function finish() {
     if (finished) return;
@@ -248,14 +277,15 @@ function mabuRunBoot(done) {
 
   function step() {
     if (finished) return;
-    if (i < MABU_BOOT_LINES.length) {
-      printed += MABU_BOOT_LINES[i] + "\n";
-      logEl.textContent = printed;
-      fillEl.style.width = `${Math.round(((i + 1) / MABU_BOOT_LINES.length) * 100)}%`;
+    if (i < MABU_BOOT_STEPS.length) {
+      const li = document.createElement("li");
+      li.innerHTML = `${mabuIcon("check")}<span>${mabuEscape(MABU_BOOT_STEPS[i])}</span><span class="mabu-boot-step-status">OK</span>`;
+      logEl.appendChild(li);
+      fillEl.style.width = `${Math.round(((i + 1) / MABU_BOOT_STEPS.length) * 100)}%`;
       i++;
-      setTimeout(step, 70 + Math.random() * 40);
+      setTimeout(step, 170 + Math.random() * 90);
     } else {
-      setTimeout(finish, 250);
+      setTimeout(finish, 300);
     }
   }
 
@@ -263,7 +293,7 @@ function mabuRunBoot(done) {
   step();
 }
 
-/* Boot sequence is skipped when the user has opted out in Settings, or has
+/* The startup screen is skipped when the user has opted out in Settings, or has
    already seen it this session — either way we always still go through the
    auth gate. */
 function mabuInitBoot() {
@@ -301,15 +331,21 @@ async function mabuCheckAuthAndRoute() {
       mabuCsrfToken = data.csrf_token;
       mabuCurrentUser = { username: data.username, role: data.role };
       shellEl.hidden = false;
-      document.getElementById("loggedInAsText").textContent = `user: ${data.username} (${data.role})`;
+      mabuShowSignedInUser(data.username, data.role);
       mabuInitAll();
     } else {
       loginScreen.hidden = false;
     }
   } catch (e) {
     loginScreen.hidden = false;
-    document.getElementById("loginError").textContent = "cannot reach api — is mabu-server.py running?";
+    document.getElementById("loginError").textContent = "Cannot reach the MABU server. Make sure it is running, then reload.";
   }
+}
+
+function mabuShowSignedInUser(username, role) {
+  document.getElementById("loggedInAsText").textContent = username || "–";
+  document.getElementById("loggedInRole").textContent = role === "admin" ? "Administrator" : "Investigator";
+  document.getElementById("userAvatar").textContent = (username || "?").slice(0, 2);
 }
 
 function mabuInitLogin() {
@@ -321,7 +357,7 @@ function mabuInitLogin() {
     errEl.textContent = "";
 
     if (!username || !password) {
-      errEl.textContent = "username and password required.";
+      errEl.textContent = "Enter your username and password.";
       return;
     }
 
@@ -334,7 +370,7 @@ function mabuInitLogin() {
       });
       const data = await res.json();
       if (!res.ok) {
-        errEl.textContent = data.error || "login failed.";
+        errEl.textContent = data.error || "Sign-in failed.";
         return;
       }
       mabuCsrfToken = data.csrf_token;
@@ -342,11 +378,11 @@ function mabuInitLogin() {
       mabuSessionExpiredHandled = false;
       document.getElementById("mabuLoginScreen").hidden = true;
       document.getElementById("mabuShell").hidden = false;
-      document.getElementById("loggedInAsText").textContent = `user: ${data.username} (${data.role})`;
+      mabuShowSignedInUser(data.username, data.role);
       mabuInitAll();
-      mabuToast("success", "Authenticated", `Welcome back, ${data.username}.`);
+      mabuToast("success", "Signed in", `Welcome back, ${data.username}.`);
     } catch (e) {
-      errEl.textContent = "cannot reach api — is mabu-server.py running?";
+      errEl.textContent = "Cannot reach the MABU server. Make sure it is running, then try again.";
     }
   };
 
@@ -372,33 +408,40 @@ function mabuInitLogout() {
 function mabuTickClock() {
   const el = document.getElementById("mabuClock");
   if (!el) return;
-  const now = new Date();
-  el.textContent = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  const iso = new Date().toISOString();
+  el.textContent = iso.slice(11, 19) + " UTC";
+  el.title = iso.slice(0, 10);
 }
 
 /* ---------------- Navigation ---------------- */
 
-const MABU_TITLES = {
-  home: "overview",
-  email: "email-lookup",
-  username: "username-tracker",
-  discord: "discord-tools",
-  network: "network-ip-tools",
-  toolkit: "hash-encode-toolkit",
-  research: "case-new",
-  vault: "mabu-vault",
-  reader: "mabu-reader",
-  timeline: "timeline-graph",
-  correlate: "correlation-engine",
-  lookups: "public-record-lookups",
-  admin: "users-and-audit",
-  settings: "settings",
+const MABU_VIEWS = {
+  home: { section: "Casework", title: "Overview", desc: "Vault status, quick actions and available capabilities." },
+  research: { section: "Casework", title: "New case", desc: "Open a new encrypted case and record its first entry." },
+  vault: { section: "Casework", title: "Case vault", desc: "Search, filter and work every case in the vault." },
+  timeline: { section: "Casework", title: "Timeline", desc: "Chronological activity across cases, with a relationship graph." },
+  correlate: { section: "Casework", title: "Link analysis", desc: "Find cases connected by shared identifiers." },
+  reader: { section: "Casework", title: "Case reader", desc: "Decrypt a case file directly, including passphrase-protected cases." },
+  lookups: { section: "Collection", title: "Public records", desc: "WHOIS, DNS, live handle checks, phone parsing, breach exposure and image metadata." },
+  email: { section: "Collection", title: "Email analysis", desc: "Validate an address, classify its domain and log confirmed platform presence." },
+  username: { section: "Collection", title: "Username analysis", desc: "Profile links across platforms, handle permutations and observed handles." },
+  discord: { section: "Collection", title: "Discord analysis", desc: "Decode snowflake IDs, parse links and decode CDN assets, entirely offline." },
+  network: { section: "Collection", title: "Network analysis", desc: "Classify IP addresses, calculate CIDR ranges and look up common ports." },
+  toolkit: { section: "Collection", title: "Hashing & encoding", desc: "Hashes, Base64 and URL encoding, and JWT decoding, computed in your browser." },
+  admin: { section: "Administration", title: "Users & audit", desc: "Manage accounts and roles, review the audit log and check system status." },
+  settings: { section: "System", title: "Settings", desc: "Display preferences, session details and keyboard shortcuts." },
 };
 
 function mabuGoTo(view) {
   document.querySelectorAll(".mabu-nav-item").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
   document.querySelectorAll(".mabu-view").forEach((sec) => sec.classList.toggle("active", sec.id === "view-" + view));
-  document.getElementById("viewTitle").textContent = MABU_TITLES[view] || view;
+  const meta = MABU_VIEWS[view] || { section: "MABU", title: view, desc: "" };
+  document.getElementById("viewTitle").textContent = meta.title;
+  document.getElementById("viewSection").textContent = meta.section;
+  document.getElementById("viewDesc").textContent = meta.desc;
+  document.title = `${meta.title} · MABU`;
+  const main = document.querySelector(".mabu-main");
+  if (main) main.scrollTop = 0;
 
   if (view === "vault") mabuLoadVault();
   if (view === "reader") mabuLoadReaderFileList();
@@ -419,10 +462,10 @@ async function mabuCheckApiStatus() {
     const res = await mabuFetch("/api/health", { cache: "no-store" });
     if (!res.ok) throw new Error("bad status");
     dot.className = "mabu-status-dot online";
-    text.textContent = "api: online";
+    text.textContent = "Server online";
   } catch (e) {
     dot.className = "mabu-status-dot offline";
-    text.textContent = "api: offline (run mabu-server.py)";
+    text.textContent = "Server unreachable";
   }
 }
 
@@ -446,7 +489,7 @@ function mabuInitEmail() {
     const valid = emailRegex.test(value);
 
     box.hidden = false;
-    document.getElementById("emValid").textContent = valid ? "true" : "false";
+    document.getElementById("emValid").textContent = valid ? "Yes" : "No";
 
     if (!valid) {
       ["emLocal", "emDomain", "emDomainType", "emMx", "emDisposable"].forEach(
@@ -459,23 +502,23 @@ function mabuInitEmail() {
     document.getElementById("emLocal").textContent = local;
     document.getElementById("emDomain").textContent = domain.toLowerCase();
     document.getElementById("emDomainType").textContent = FREE_EMAIL_DOMAINS.has(domain.toLowerCase())
-      ? "free/consumer webmail"
-      : "custom/org domain";
+      ? "Consumer webmail"
+      : "Custom or organizational";
 
     const looksDisposable = DISPOSABLE_HINTS.some((h) => domain.toLowerCase().includes(h));
-    document.getElementById("emDisposable").textContent = looksDisposable ? "possible match" : "no match";
+    document.getElementById("emDisposable").textContent = looksDisposable ? "Possible match" : "No match";
 
-    document.getElementById("emMx").textContent = "checking...";
+    document.getElementById("emMx").textContent = "Checking…";
     try {
       const res = await mabuFetch(`/api/email/domain-check?domain=${encodeURIComponent(domain)}`);
       if (res.ok) {
         const data = await res.json();
-        document.getElementById("emMx").textContent = data.resolves ? `yes (${data.detail || "resolves"})` : "no / unresolved";
+        document.getElementById("emMx").textContent = data.resolves ? `Yes (${data.detail || "resolves"})` : "No / unresolved";
       } else {
-        document.getElementById("emMx").textContent = "api unavailable";
+        document.getElementById("emMx").textContent = "Server unavailable";
       }
     } catch (e) {
-      document.getElementById("emMx").textContent = "api offline";
+      document.getElementById("emMx").textContent = "Server unreachable";
     }
   });
 
@@ -494,10 +537,10 @@ function mabuInitEmail() {
 function mabuRenderPlatforms() {
   const tbody = document.querySelector("#platformTable tbody");
   const list = mabuLoadJSON("mabu_platforms");
-  tbody.innerHTML = "";
+  tbody.innerHTML = list.length ? "" : `<tr><td colspan="3" class="mabu-note">No platforms logged yet.</td></tr>`;
   list.forEach((item, idx) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${mabuEscape(item.platform)}</td><td>${mabuEscape(item.status)}</td><td><button class="mabu-btn-danger" data-idx="${idx}">rm</button></td>`;
+    tr.innerHTML = `<td>${mabuEscape(item.platform)}</td><td><span class="mabu-pill" data-status="${mabuEscape(item.status)}" style="cursor:default;">${mabuEscape(mabuStatusLabel(item.status))}</span></td><td><button class="mabu-btn-danger" data-idx="${idx}" type="button">Remove</button></td>`;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll("button[data-idx]").forEach((btn) => {
@@ -593,18 +636,24 @@ function mabuRenderUsernameMatrix(handle) {
     tr.innerHTML = `
       <td>${mabuEscape(p.name)}</td>
       <td><a href="${p.url(encodeURIComponent(handle))}" target="_blank" rel="noopener noreferrer">${p.url(handle)}</a></td>
-      <td><span class="mabu-pill" data-status="${status}" data-platform="${mabuEscape(p.name)}">${status}</span></td>
+      <td><span class="mabu-pill" data-status="${status}" data-platform="${mabuEscape(p.name)}" role="button" tabindex="0" title="Click to change status">${mabuStatusLabel(status)}</span></td>
     `;
     tbody.appendChild(tr);
   });
 
   tbody.querySelectorAll(".mabu-pill").forEach((pill) => {
+    pill.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        pill.click();
+      }
+    });
     pill.addEventListener("click", () => {
       const cycle = ["unknown", "confirmed", "not_found"];
       const cur = pill.dataset.status;
       const next = cycle[(cycle.indexOf(cur) + 1) % cycle.length];
       pill.dataset.status = next;
-      pill.textContent = next;
+      pill.textContent = mabuStatusLabel(next);
       const data = mabuLoadJSON(key, {});
       data[pill.dataset.platform] = next;
       mabuSaveJSON(key, data);
@@ -615,10 +664,10 @@ function mabuRenderUsernameMatrix(handle) {
 function mabuRenderDiscordUsers() {
   const tbody = document.querySelector("#discordUserTable tbody");
   const list = mabuLoadJSON("mabu_discord_users");
-  tbody.innerHTML = "";
+  tbody.innerHTML = list.length ? "" : `<tr><td colspan="3" class="mabu-note">No handles recorded yet.</td></tr>`;
   list.forEach((item, idx) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${mabuEscape(item.username)}</td><td>${mabuEscape(item.source)}</td><td><button class="mabu-btn-danger" data-idx="${idx}">rm</button></td>`;
+    tr.innerHTML = `<td>${mabuEscape(item.username)}</td><td>${mabuEscape(item.source)}</td><td><button class="mabu-btn-danger" data-idx="${idx}" type="button">Remove</button></td>`;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll("button[data-idx]").forEach((btn) => {
@@ -641,7 +690,7 @@ function mabuInitDiscord() {
     const box = document.getElementById("snowflakeResult");
 
     if (!/^\d+$/.test(raw)) {
-      alert("Please enter a valid numeric Snowflake ID.");
+      mabuToast("warning", "Invalid snowflake", "Enter a numeric Discord snowflake ID.");
       return;
     }
 
@@ -658,8 +707,8 @@ function mabuInitDiscord() {
     const ageYears = (ageDays / 365.25).toFixed(2);
 
     box.hidden = false;
-    document.getElementById("sfTimestamp").textContent = date.toISOString().replace("T", " ").replace("Z", " UTC");
-    document.getElementById("sfAge").textContent = `${ageDays.toLocaleString()} days (~${ageYears}y)`;
+    document.getElementById("sfTimestamp").textContent = date.toISOString().replace("T", " ").replace("Z", "");
+    document.getElementById("sfAge").textContent = `${ageDays.toLocaleString()} days (≈${ageYears} years)`;
     document.getElementById("sfWorker").textContent = workerId.toString();
     document.getElementById("sfProcess").textContent = processId.toString();
     document.getElementById("sfIncrement").textContent = increment.toString();
@@ -727,13 +776,13 @@ function mabuInitSnowflakeBatch() {
     tbody.innerHTML = results.map((r) => `
       <tr>
         <td>${mabuEscape(r.raw)}</td>
-        <td>${r.date.toISOString().replace("T", " ").replace("Z", " UTC")}</td>
-        <td>${r.ageDays.toLocaleString()}d</td>
+        <td>${r.date.toISOString().replace("T", " ").replace("Z", "")}</td>
+        <td>${r.ageDays.toLocaleString()} days</td>
         <td>${r.workerId}</td>
         <td>${r.processId}</td>
         <td>${r.increment}</td>
       </tr>
-    `).join("") || `<tr><td colspan="6" class="mabu-note">no valid snowflakes found.</td></tr>`;
+    `).join("") || `<tr><td colspan="6" class="mabu-note">No valid snowflake IDs found.</td></tr>`;
 
     if (errors.length) {
       mabuToast("warning", "Some lines skipped", `${errors.length} line(s) were not valid snowflake IDs.`);
@@ -760,20 +809,20 @@ function mabuInitDiscordLinkParser() {
       const [, guildId, channelId, messageId] = msgMatch;
       const isDM = guildId === "@me";
       let html = `
-        <div class="mabu-kv"><span>link type</span><b>message link${isDM ? " (DM)" : ""}</b></div>
-        <div class="mabu-kv"><span>guild_id</span><b>${isDM ? "(direct message — no guild)" : mabuEscape(guildId)}</b></div>
-        <div class="mabu-kv"><span>channel_id</span><b>${mabuEscape(channelId)}</b></div>
-        <div class="mabu-kv"><span>message_id</span><b>${mabuEscape(messageId)}</b></div>
+        <div class="mabu-kv"><span>Link type</span><b>Message link${isDM ? " (direct message)" : ""}</b></div>
+        <div class="mabu-kv"><span>Server ID</span><b>${isDM ? "None (direct message)" : mabuEscape(guildId)}</b></div>
+        <div class="mabu-kv"><span>Channel ID</span><b>${mabuEscape(channelId)}</b></div>
+        <div class="mabu-kv"><span>Message ID</span><b>${mabuEscape(messageId)}</b></div>
       `;
       try {
         const decoded = mabuDecodeSnowflake(messageId);
-        html += `<div class="mabu-kv"><span>message sent</span><b>${decoded.date.toISOString().replace("T", " ").replace("Z", " UTC")}</b></div>`;
+        html += `<div class="mabu-kv"><span>Message sent (UTC)</span><b>${decoded.date.toISOString().replace("T", " ").replace("Z", "")}</b></div>`;
       } catch (e) { /* ignore */ }
       box.innerHTML = html;
     } else if (inviteMatch) {
       box.innerHTML = `
-        <div class="mabu-kv"><span>link type</span><b>server invite</b></div>
-        <div class="mabu-kv"><span>invite_code</span><b>${mabuEscape(inviteMatch[1])}</b></div>
+        <div class="mabu-kv"><span>Link type</span><b>Server invite</b></div>
+        <div class="mabu-kv"><span>Invite code</span><b>${mabuEscape(inviteMatch[1])}</b></div>
         <p class="mabu-note" style="margin-top:8px;">Invite codes don't encode a timestamp or guild ID directly — resolving which server/channel this points to would require querying Discord's API, which MABU does not do.</p>
       `;
     } else {
@@ -812,32 +861,32 @@ function mabuInitCdnDecoder() {
       const [, assetType, ownerId, hash, ext] = urlMatch;
       const animated = hash.startsWith("a_");
       let html = `
-        <div class="mabu-kv"><span>asset type</span><b>${mabuEscape(DISCORD_CDN_ASSET_TYPES[assetType] || assetType)}</b></div>
-        <div class="mabu-kv"><span>owner id</span><b>${mabuEscape(ownerId)}</b></div>
-        <div class="mabu-kv"><span>hash</span><b>${mabuEscape(hash)}</b></div>
-        <div class="mabu-kv"><span>format</span><b>${mabuEscape(ext.toLowerCase())}</b></div>
-        <div class="mabu-kv"><span>animated</span><b>${animated ? "yes (a_ prefix)" : "no"}</b></div>
+        <div class="mabu-kv"><span>Asset type</span><b>${mabuEscape(DISCORD_CDN_ASSET_TYPES[assetType] || assetType)}</b></div>
+        <div class="mabu-kv"><span>Owner ID</span><b>${mabuEscape(ownerId)}</b></div>
+        <div class="mabu-kv"><span>Hash</span><b>${mabuEscape(hash)}</b></div>
+        <div class="mabu-kv"><span>Format</span><b>${mabuEscape(ext.toLowerCase())}</b></div>
+        <div class="mabu-kv"><span>Animated</span><b>${animated ? "Yes (a_ prefix)" : "No"}</b></div>
       `;
       try {
         const decoded = mabuDecodeSnowflake(ownerId);
-        html += `<div class="mabu-kv"><span>owner id created</span><b>${decoded.date.toISOString().replace("T", " ").replace("Z", " UTC")}</b></div>`;
+        html += `<div class="mabu-kv"><span>Owner ID created (UTC)</span><b>${decoded.date.toISOString().replace("T", " ").replace("Z", "")}</b></div>`;
       } catch (e) { /* ignore */ }
       box.innerHTML = html;
     } else if (bareMatch) {
       const [, ownerId, hash, ext] = bareMatch;
       const animated = hash.startsWith("a_");
       box.innerHTML = `
-        <div class="mabu-kv"><span>owner id</span><b>${mabuEscape(ownerId)}</b></div>
-        <div class="mabu-kv"><span>hash</span><b>${mabuEscape(hash)}</b></div>
-        <div class="mabu-kv"><span>format</span><b>${mabuEscape(ext.toLowerCase())}</b></div>
-        <div class="mabu-kv"><span>animated</span><b>${animated ? "yes (a_ prefix)" : "no"}</b></div>
+        <div class="mabu-kv"><span>Owner ID</span><b>${mabuEscape(ownerId)}</b></div>
+        <div class="mabu-kv"><span>Hash</span><b>${mabuEscape(hash)}</b></div>
+        <div class="mabu-kv"><span>Format</span><b>${mabuEscape(ext.toLowerCase())}</b></div>
+        <div class="mabu-kv"><span>Animated</span><b>${animated ? "Yes (a_ prefix)" : "No"}</b></div>
       `;
     } else if (hashOnly) {
       const hash = hashOnly[0];
       const animated = hash.startsWith("a_");
       box.innerHTML = `
-        <div class="mabu-kv"><span>hash</span><b>${mabuEscape(hash)}</b></div>
-        <div class="mabu-kv"><span>animated</span><b>${animated ? "yes (a_ prefix)" : "no"}</b></div>
+        <div class="mabu-kv"><span>Hash</span><b>${mabuEscape(hash)}</b></div>
+        <div class="mabu-kv"><span>Animated</span><b>${animated ? "Yes (a_ prefix)" : "No"}</b></div>
         <p class="mabu-note" style="margin-top:8px;">No owner ID or format present in a bare hash — paste the full CDN URL for those fields.</p>
       `;
     } else {
@@ -860,9 +909,9 @@ function mabuInitDiscordTagCheck() {
 
     if (legacyMatch && !isLegacySpecialCase) {
       box.innerHTML = `
-        <div class="mabu-kv"><span>format</span><b>legacy Name#Discriminator</b></div>
-        <div class="mabu-kv"><span>display name</span><b>${mabuEscape(legacyMatch[1])}</b></div>
-        <div class="mabu-kv"><span>discriminator</span><b>${mabuEscape(legacyMatch[2])}</b></div>
+        <div class="mabu-kv"><span>Format</span><b>Legacy Name#Discriminator</b></div>
+        <div class="mabu-kv"><span>Display name</span><b>${mabuEscape(legacyMatch[1])}</b></div>
+        <div class="mabu-kv"><span>Discriminator</span><b>${mabuEscape(legacyMatch[2])}</b></div>
         <p class="mabu-note" style="margin-top:8px;">This format was retired in 2023. Discriminators are no longer assigned to new/migrated accounts, so this handle was likely captured before the migration (or the account never migrated to a unique username).</p>
       `;
       return;
@@ -872,15 +921,15 @@ function mabuInitDiscordTagCheck() {
     if (uniqueUsernameRe.test(raw)) {
       const hasDot = raw.includes(".");
       box.innerHTML = `
-        <div class="mabu-kv"><span>format</span><b>unique username (post-2023)</b></div>
-        <div class="mabu-kv"><span>username</span><b>${mabuEscape(raw)}</b></div>
-        <div class="mabu-kv"><span>valid characters</span><b>yes (lowercase, digits, underscore, period)</b></div>
-        ${hasDot ? '<div class="mabu-kv"><span>note</span><b>a single non-leading/trailing period is allowed</b></div>' : ""}
+        <div class="mabu-kv"><span>Format</span><b>Unique username (post-2023)</b></div>
+        <div class="mabu-kv"><span>Username</span><b>${mabuEscape(raw)}</b></div>
+        <div class="mabu-kv"><span>Valid characters</span><b>Yes (lowercase, digits, underscore, period)</b></div>
+        ${hasDot ? '<div class="mabu-kv"><span>Note</span><b>A single non-leading/trailing period is allowed</b></div>' : ""}
         <p class="mabu-note" style="margin-top:8px;">Consistent with the current unique-username system — no discriminator needed. Doesn't confirm the account exists; this is a format check only.</p>
       `;
     } else {
       box.innerHTML = `
-        <div class="mabu-kv"><span>format</span><b>does not match either known format</b></div>
+        <div class="mabu-kv"><span>Format</span><b>Matches neither known format</b></div>
         <p class="mabu-note" style="margin-top:8px;">Not a valid legacy "Name#1234" or current unique-username pattern (lowercase letters, digits, underscore, single period, 2-32 chars). Could be a display/nickname rather than the actual username.</p>
       `;
     }
@@ -968,7 +1017,7 @@ function mabuInitNetwork() {
       const parts = match.slice(1);
       const valid = parts.every((p) => Number(p) >= 0 && Number(p) <= 255);
       document.getElementById("ipVersion").textContent = "IPv4";
-      document.getElementById("ipValid").textContent = valid ? "true" : "false";
+      document.getElementById("ipValid").textContent = valid ? "Yes" : "No";
       if (valid) {
         document.getElementById("ipScope").textContent = classifyIPv4Scope(parts);
         document.getElementById("ipBinary").textContent = ipv4ToBinary(parts);
@@ -981,14 +1030,14 @@ function mabuInitNetwork() {
       document.getElementById("ipVersion").textContent = "IPv6";
       const ipv6Regex = /^[0-9a-fA-F:]+$/;
       const valid = ipv6Regex.test(value) && value.split(":").length >= 3;
-      document.getElementById("ipValid").textContent = valid ? "true (heuristic)" : "false";
+      document.getElementById("ipValid").textContent = valid ? "Yes (heuristic)" : "No";
       document.getElementById("ipScope").textContent = valid ? classifyIPv6Scope(value) : "–";
-      document.getElementById("ipBinary").textContent = "n/a for IPv6";
-      document.getElementById("ipHex").textContent = "n/a for IPv6";
-      document.getElementById("ipPtr").textContent = "n/a (use ip6.arpa expansion)";
+      document.getElementById("ipBinary").textContent = "Not shown for IPv6";
+      document.getElementById("ipHex").textContent = "Not shown for IPv6";
+      document.getElementById("ipPtr").textContent = "Use the ip6.arpa expansion";
     } else {
-      document.getElementById("ipVersion").textContent = "unknown";
-      document.getElementById("ipValid").textContent = "false";
+      document.getElementById("ipVersion").textContent = "Unknown";
+      document.getElementById("ipValid").textContent = "No";
       ["ipScope", "ipBinary", "ipHex", "ipPtr"].forEach((id) => (document.getElementById(id).textContent = "–"));
     }
   });
@@ -1000,7 +1049,7 @@ function mabuInitNetwork() {
 
     box.hidden = false;
     if (!cidrMatch) {
-      alert("Enter valid CIDR notation, e.g. 192.168.1.0/24");
+      mabuToast("warning", "Invalid CIDR block", "Use CIDR notation, e.g. 192.168.1.0/24.");
       box.hidden = true;
       return;
     }
@@ -1008,7 +1057,7 @@ function mabuInitNetwork() {
     const octets = cidrMatch.slice(1, 5).map(Number);
     const prefix = Number(cidrMatch[5]);
     if (octets.some((o) => o > 255) || prefix > 32) {
-      alert("Invalid CIDR values.");
+      mabuToast("warning", "Invalid CIDR block", "Octets must be 0–255 and the prefix 0–32.");
       box.hidden = true;
       return;
     }
@@ -1121,7 +1170,7 @@ function mabuInitToolkit() {
     try {
       document.getElementById("codecOutput").value = btoa(unescape(encodeURIComponent(input)));
     } catch (e) {
-      document.getElementById("codecOutput").value = "ERROR: " + e.message;
+      document.getElementById("codecOutput").value = "Error: " + e.message;
     }
   });
 
@@ -1130,7 +1179,7 @@ function mabuInitToolkit() {
     try {
       document.getElementById("codecOutput").value = decodeURIComponent(escape(atob(input)));
     } catch (e) {
-      document.getElementById("codecOutput").value = "ERROR: invalid base64 input";
+      document.getElementById("codecOutput").value = "Error: input is not valid Base64.";
     }
   });
 
@@ -1144,7 +1193,7 @@ function mabuInitToolkit() {
     try {
       document.getElementById("codecOutput").value = decodeURIComponent(input);
     } catch (e) {
-      document.getElementById("codecOutput").value = "ERROR: invalid URL-encoded input";
+      document.getElementById("codecOutput").value = "Error: input is not valid URL encoding.";
     }
   });
 
@@ -1154,7 +1203,7 @@ function mabuInitToolkit() {
     const box = document.getElementById("jwtResult");
 
     if (parts.length < 2) {
-      alert("Not a valid JWT (expected header.payload.signature)");
+      mabuToast("warning", "Not a valid JWT", "Expected header.payload.signature.");
       return;
     }
 
@@ -1170,7 +1219,7 @@ function mabuInitToolkit() {
       document.getElementById("jwtPayload").textContent = JSON.stringify(payload, null, 2);
       box.hidden = false;
     } catch (e) {
-      alert("Failed to decode JWT: " + e.message);
+      mabuToast("error", "Could not decode token", e.message);
     }
   });
 }
@@ -1200,12 +1249,12 @@ function mabuInitResearch() {
     };
 
     if (!payload.summary && !payload.findings) {
-      statusEl.textContent = "add a summary or findings before saving.";
+      statusEl.textContent = "Add a summary or findings before saving.";
       statusEl.style.color = "var(--mabu-amber)";
       return;
     }
 
-    statusEl.textContent = "creating case...";
+    statusEl.textContent = "Encrypting and saving…";
     statusEl.style.color = "var(--mabu-text-dim)";
 
     try {
@@ -1216,10 +1265,11 @@ function mabuInitResearch() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
-      statusEl.textContent = `case created: ${data.filename}`;
+      statusEl.textContent = `Case created: ${data.filename}`;
       statusEl.style.color = "var(--mabu-green)";
+      mabuToast("success", "Case created", payload.title);
     } catch (e) {
-      statusEl.textContent = `error: ${e.message}. is mabu-server.py running?`;
+      statusEl.textContent = `Could not create case: ${e.message}`;
       statusEl.style.color = "var(--mabu-red)";
     }
   });
@@ -1246,7 +1296,7 @@ function mabuRenderVaultPage() {
   tbody.innerHTML = "";
 
   if (!files.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">no .mabu files found in vault.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("inbox")}</div><h4>No cases found</h4><p>Create a case, or clear your search and filters.</p></div></td></tr>`;
     pagination.hidden = true;
     return;
   }
@@ -1260,16 +1310,16 @@ function mabuRenderVaultPage() {
     const tags = (f.tags || []).map((t) => `<span class="mabu-tag">${mabuEscape(t)}</span>`).join("");
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${mabuEscape(f.title || f.filename)}</td>
-      <td>${mabuEscape(f.status || "–")}</td>
-      <td>${f.entry_count ?? "–"}</td>
-      <td>${mabuEscape((f.updated || "").replace("T", " ").slice(0, 19))}</td>
+      <td><div class="mabu-cell-title">${f.locked ? mabuIcon("lock") + " " : ""}${mabuEscape(f.title || f.filename)}</div><div class="mabu-cell-sub">${mabuEscape(f.filename)}</div></td>
+      <td>${f.status ? mabuStatusBadge(f.status) : "–"}</td>
+      <td class="mabu-num">${f.entry_count ?? "–"}</td>
+      <td class="mabu-mono">${mabuEscape(mabuFormatUtc(f.updated)) || "–"}</td>
       <td>${mabuEscape(f.investigator || "–")}</td>
       <td>${tags || "–"}</td>
       <td>
-        <button class="mabu-btn-secondary mabu-btn" data-file="${mabuEscape(f.filename)}" data-action="open">open()</button>
-        <button class="mabu-btn-secondary mabu-btn" data-file="${mabuEscape(f.filename)}" data-action="reader">reader()</button>
-        <button class="mabu-btn-danger" data-file="${mabuEscape(f.filename)}" data-title="${mabuEscape(f.title || f.filename)}" data-action="delete">delete</button>
+        <button class="mabu-btn" data-file="${mabuEscape(f.filename)}" data-action="open" type="button">Open</button>
+        <button class="mabu-btn-secondary" data-file="${mabuEscape(f.filename)}" data-action="reader" type="button" title="Open in the case reader">Reader</button>
+        <button class="mabu-btn-danger" data-file="${mabuEscape(f.filename)}" data-title="${mabuEscape(f.title || f.filename)}" data-action="delete" type="button" title="Delete case" aria-label="Delete case">${mabuIcon("trash")}</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -1293,7 +1343,7 @@ function mabuRenderVaultPage() {
   if (files.length > MABU_VAULT_PAGE_SIZE) {
     pagination.hidden = false;
     document.getElementById("vaultPageInfo").textContent =
-      `showing ${start + 1}-${Math.min(start + MABU_VAULT_PAGE_SIZE, files.length)} of ${files.length}`;
+      `Showing ${start + 1}–${Math.min(start + MABU_VAULT_PAGE_SIZE, files.length)} of ${files.length}`;
     document.getElementById("vaultPagePrev").disabled = mabuVaultPage === 0;
     document.getElementById("vaultPageNext").disabled = mabuVaultPage >= totalPages - 1;
   } else {
@@ -1303,13 +1353,13 @@ function mabuRenderVaultPage() {
 
 async function mabuLoadVault() {
   const tbody = document.querySelector("#vaultTable tbody");
-  tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="7"><div class="mabu-loading-state"><span class="mabu-spinner"></span> Loading cases…</div></td></tr>`;
   try {
     const res = await mabuFetch("/api/vault/list");
     const data = await res.json();
     mabuRenderVaultRows(data.files || []);
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">could not reach api. is mabu-server.py running?</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">Could not reach the MABU server.</td></tr>`;
   }
 }
 
@@ -1319,7 +1369,7 @@ async function mabuOpenCaseDetail(filename) {
   const card = document.getElementById("caseDetailCard");
   card.hidden = false;
   document.getElementById("caseDetailTitle").textContent = filename;
-  document.getElementById("caseOverviewBody").innerHTML = `<div class="mabu-loading-state"><span class="mabu-spinner"></span> decrypting case...</div>`;
+  document.getElementById("caseOverviewBody").innerHTML = `<div class="mabu-loading-state"><span class="mabu-spinner"></span> Decrypting case…</div>`;
   card.scrollIntoView({ behavior: "smooth" });
 
   try {
@@ -1333,7 +1383,7 @@ async function mabuOpenCaseDetail(filename) {
     mabuCurrentCaseRecord = data.record;
     mabuRenderCaseWorkspace(data.record);
   } catch (e) {
-    document.getElementById("caseOverviewBody").innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">?</div><h4>Could not open case</h4><p>${mabuEscape(e.message)}. Passphrase-protected files must be opened via the Reader tab instead.</p></div>`;
+    document.getElementById("caseOverviewBody").innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("alert")}</div><h4>Could not open case</h4><p>${mabuEscape(e.message)}. Passphrase-protected files must be opened via the Reader tab instead.</p></div>`;
     mabuCurrentCaseFilename = null;
     mabuCurrentCaseRecord = null;
   }
@@ -1353,17 +1403,19 @@ function mabuRenderCaseWorkspace(rec) {
   // Overview
   const tagsHtml = (rec.tags || []).length
     ? rec.tags.map((t) => `<span class="mabu-tag">${mabuEscape(t)}</span>`).join("")
-    : `<span class="mabu-note">(no tags)</span>`;
+    : `<span class="mabu-note" style="margin:0;">No tags</span>`;
+  const lastEntry = entries[entries.length - 1];
   document.getElementById("caseOverviewBody").innerHTML = `
-    <div class="mabu-kv"><span>status</span><b>${mabuEscape(rec.status || "open")}</b></div>
-    <div class="mabu-kv"><span>entries</span><b>${entries.length}</b></div>
-    <div class="mabu-kv"><span>tags</span><b>${tagsHtml}</b></div>
+    <div class="mabu-kv"><span>Status</span><b>${mabuStatusBadge(rec.status)}</b></div>
+    <div class="mabu-kv"><span>Entries</span><b>${entries.length}</b></div>
+    <div class="mabu-kv"><span>Latest summary</span><b>${mabuEscape((lastEntry && lastEntry.summary) || "–")}</b></div>
+    <div class="mabu-kv"><span>Tags</span><b>${tagsHtml}</b></div>
   `;
 
   // Entries
   document.getElementById("caseEntriesBody").innerHTML = entries.length
     ? entries.slice().reverse().map((e) => mabuRenderEntryCard(e)).join("")
-    : `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">·</div><h4>No entries yet</h4><p>Add the first entry below.</p></div>`;
+    : `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("inbox")}</div><h4>No entries yet</h4><p>Add the first entry below.</p></div>`;
 
   // Identifiers (aggregated, deduplicated, with chip UI)
   document.getElementById("caseIdentifiersBody").innerHTML = mabuRenderIdentifierChips(entries);
@@ -1374,41 +1426,44 @@ function mabuRenderCaseWorkspace(rec) {
   // Activity log
   const activity = rec.activity_log || [];
   document.getElementById("caseActivityBody").innerHTML = activity.length
-    ? `<table class="mabu-table"><thead><tr><th>date</th><th>action</th><th>detail</th></tr></thead><tbody>${
+    ? `<table class="mabu-table"><thead><tr><th>Date (UTC)</th><th>Action</th><th>Detail</th></tr></thead><tbody>${
         activity.slice().reverse().map((a) => `
           <tr>
-            <td>${mabuEscape((a.date || "").replace("T", " ").slice(0, 19))}</td>
-            <td>${mabuEscape((a.action || "").replace(/_/g, " "))}</td>
+            <td class="mabu-mono">${mabuEscape(mabuFormatUtc(a.date))}</td>
+            <td>${mabuEscape(mabuHumanizeKey(a.action || ""))}</td>
             <td>${mabuEscape(a.detail || "")}</td>
           </tr>
         `).join("")
       }</tbody></table>`
-    : `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">·</div><h4>No activity recorded</h4></div>`;
+    : `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("inbox")}</div><h4>No activity recorded</h4></div>`;
 }
 
 function mabuRenderEntryCard(e) {
   const listField = (arr) => (arr && arr.length ? arr.map(mabuEscape).join(", ") : "–");
   const attachments = e.attachments || [];
   const attachmentsHtml = attachments.length
-    ? attachments.map((a) => `<button class="mabu-btn-secondary mabu-btn" data-entry="${mabuEscape(e.entry_id)}" data-attachment="${mabuEscape(a.attachment_id)}" data-filename="${mabuEscape(a.filename)}">${mabuEscape(a.filename)}</button>`).join(" ")
+    ? attachments.map((a) => `<button class="mabu-btn-secondary" type="button" data-entry="${mabuEscape(e.entry_id)}" data-attachment="${mabuEscape(a.attachment_id)}" data-filename="${mabuEscape(a.filename)}">${mabuEscape(a.filename)}</button>`).join(" ")
     : "";
   return `
-    <div class="mabu-result-box" style="margin-bottom:10px;">
-      <div class="mabu-kv"><span>date</span><b>${mabuEscape((e.date || "").replace("T", " ").slice(0, 19))}</b></div>
-      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="observed">observed</span> author</span><b>${mabuEscape(e.author || "–")}</b></div>
-      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="analyst">analyst</span> summary</span><b>${mabuEscape(e.summary || "–")}</b></div>
-      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="analyst">analyst</span> findings</span><b>${mabuEscape(e.findings || "–")}</b></div>
-      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="source">source</span> emails</span><b>${listField(e.emails)}</b></div>
-      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="source">source</span> usernames</span><b>${listField(e.usernames)}</b></div>
-      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="source">source</span> ips</span><b>${listField(e.ips)}</b></div>
-      ${e.sources && e.sources.length ? `<div class="mabu-kv"><span>sources</span><b>${listField(e.sources)}</b></div>` : ""}
-      ${attachmentsHtml ? `<div class="mabu-kv"><span>attachments</span><b>${attachmentsHtml}</b></div>` : ""}
+    <div class="mabu-entry">
+      <div class="mabu-entry-head">
+        <span class="mabu-entry-date">${mabuEscape(mabuFormatUtc(e.date))} UTC</span>
+        <span class="mabu-entry-author">${mabuIcon("user")} ${mabuEscape(e.author || "Unknown author")}</span>
+      </div>
+      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="analyst">Analyst</span> Summary</span><b>${mabuEscape(e.summary || "–")}</b></div>
+      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="analyst">Analyst</span> Findings</span><b>${mabuEscape(e.findings || "–")}</b></div>
+      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="source">Source</span> Emails</span><b>${listField(e.emails)}</b></div>
+      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="source">Source</span> Usernames</span><b>${listField(e.usernames)}</b></div>
+      <div class="mabu-kv"><span><span class="mabu-provenance" data-kind="source">Source</span> IP addresses</span><b>${listField(e.ips)}</b></div>
+      ${e.sources && e.sources.length ? `<div class="mabu-kv"><span>Sources</span><b>${listField(e.sources)}</b></div>` : ""}
+      ${attachmentsHtml ? `<div class="mabu-kv"><span>Attachments</span><b>${attachmentsHtml}</b></div>` : ""}
     </div>
   `;
 }
 
 function mabuRenderIdentifierChips(entries) {
-  const groups = { emails: "EMAIL", usernames: "USERNAME", ips: "IP", phones: "PHONE", names: "NAME" };
+  const groups = { emails: "EMAIL", usernames: "USER", ips: "IP", phones: "PHONE", names: "NAME" };
+  const headings = { emails: "Email addresses", usernames: "Usernames", ips: "IP addresses", phones: "Phone numbers", names: "Names and aliases" };
   const agg = {};
   Object.keys(groups).forEach((k) => { agg[k] = new Set(); });
 
@@ -1420,20 +1475,20 @@ function mabuRenderIdentifierChips(entries) {
 
   const totalCount = Object.values(agg).reduce((sum, s) => sum + s.size, 0);
   if (!totalCount) {
-    return `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">·</div><h4>No identifiers recorded</h4><p>Add emails, usernames, IPs, phones, or names via an entry.</p></div>`;
+    return `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("inbox")}</div><h4>No identifiers recorded</h4><p>Add emails, usernames, IPs, phones, or names via an entry.</p></div>`;
   }
 
   return Object.entries(groups).map(([key, label]) => {
     const values = [...agg[key]];
     if (!values.length) return "";
     return `
-      <h4 class="mabu-subhead">${label}${values.length > 1 ? "S" : ""}</h4>
+      <h4 class="mabu-subhead">${headings[key]} <span class="mabu-count">${values.length}</span></h4>
       <div class="mabu-chip-group">
         ${values.map((v) => `
           <span class="mabu-chip">
             <span class="mabu-chip-type">${label}</span>
             <span class="mabu-chip-value">${mabuEscape(v)}</span>
-            <button class="mabu-chip-btn" data-copy="${mabuEscape(v)}" title="copy" aria-label="copy ${mabuEscape(v)}">&#10697;</button>
+            <button class="mabu-chip-btn" data-copy="${mabuEscape(v)}" title="Copy" aria-label="Copy ${mabuEscape(v)}" type="button">${mabuIcon("copy")}</button>
           </span>
         `).join("")}
       </div>
@@ -1450,16 +1505,16 @@ function mabuRenderAttachmentsGallery(entries) {
   });
 
   if (!rows.length) {
-    return `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">·</div><h4>No attachments</h4><p>Attach files when adding an entry, from the Entries tab.</p></div>`;
+    return `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("inbox")}</div><h4>No attachments</h4><p>Attach files when adding an entry, from the Entries tab.</p></div>`;
   }
 
-  return `<table class="mabu-table"><thead><tr><th>filename</th><th>type</th><th>added</th><th></th></tr></thead><tbody>${
+  return `<table class="mabu-table"><thead><tr><th>File name</th><th>Type</th><th>Added (UTC)</th><th></th></tr></thead><tbody>${
     rows.map((a) => `
       <tr>
         <td>${mabuEscape(a.filename)}</td>
         <td>${mabuEscape(a.content_type || "–")}</td>
-        <td>${mabuEscape((a.added || "").replace("T", " ").slice(0, 19))}</td>
-        <td><button class="mabu-btn-secondary mabu-btn" data-entry="${mabuEscape(a.entryId)}" data-attachment="${mabuEscape(a.attachment_id)}" data-filename="${mabuEscape(a.filename)}">download</button></td>
+        <td class="mabu-mono">${mabuEscape(mabuFormatUtc(a.added))}</td>
+        <td><button class="mabu-btn-secondary" type="button" data-entry="${mabuEscape(a.entryId)}" data-attachment="${mabuEscape(a.attachment_id)}" data-filename="${mabuEscape(a.filename)}">${mabuIcon("download")} Download</button></td>
       </tr>
     `).join("")
   }</tbody></table>`;
@@ -1489,7 +1544,7 @@ async function mabuDeleteCase(filename, title) {
     title: "Delete case permanently?",
     body: `"${title}" (${filename}) will be permanently deleted. This cannot be undone — there is no backup or recycle bin. Make sure you've exported/reported anything you need first.`,
     danger: true,
-    confirmLabel: "delete permanently",
+    confirmLabel: "Delete permanently",
   });
   if (!confirmed) return;
 
@@ -1526,12 +1581,12 @@ function mabuInitVault() {
     const q = document.getElementById("vaultSearchInput").value.trim();
     const tbody = document.querySelector("#vaultTable tbody");
     if (!q) return mabuLoadVault();
-    tbody.innerHTML = `<tr><td colspan="7"><div class="mabu-loading-state"><span class="mabu-spinner"></span> searching vault (title, tags, summary, findings, identifiers)...</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="mabu-loading-state"><span class="mabu-spinner"></span> Searching titles, tags, summaries, findings and identifiers…</div></td></tr>`;
     try {
       const { data } = await mabuApi(`/api/vault/search?q=${encodeURIComponent(q)}`);
       mabuRenderVaultRows(data.files || []);
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">search failed: ${mabuEscape(e.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">Search failed: ${mabuEscape(e.message)}</td></tr>`;
     }
   };
   document.getElementById("vaultSearchBtn").addEventListener("click", runVaultSearch);
@@ -1556,8 +1611,8 @@ function mabuInitVault() {
 
     const confirmed = await mabuConfirm({
       title: "Change case status?",
-      body: `Set this case's status to "${status}"? This is recorded in the case's activity log.`,
-      confirmLabel: "set status",
+      body: `Set this case's status to "${mabuStatusLabel(status)}"? The change is recorded in the case's activity log.`,
+      confirmLabel: "Set status",
     });
     if (!confirmed) {
       document.getElementById("caseStatusSelect").value = previousStatus || "open";
@@ -1570,7 +1625,7 @@ function mabuInitVault() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, passphrase: null }),
       });
-      mabuToast("success", "Status updated", `Case is now "${status}".`);
+      mabuToast("success", "Status updated", `Case is now ${mabuStatusLabel(status).toLowerCase()}.`);
       mabuOpenCaseDetail(mabuCurrentCaseFilename);
       mabuLoadVault();
     } catch (e) {
@@ -1611,7 +1666,7 @@ function mabuInitVault() {
       return;
     }
     const statusEl = document.getElementById("ceStatus");
-    statusEl.textContent = "adding entry...";
+    statusEl.textContent = "Encrypting and saving entry…";
     statusEl.style.color = "var(--mabu-text-dim)";
 
     const fileInput = document.getElementById("ceAttachments");
@@ -1623,7 +1678,7 @@ function mabuInitVault() {
         attachments.push({ filename: f.name, content_type: f.type, data_b64: b64 });
       }
     } catch (e) {
-      statusEl.textContent = `error reading attachment: ${e.message}`;
+      statusEl.textContent = `Could not read attachment: ${e.message}`;
       statusEl.style.color = "var(--mabu-red)";
       return;
     }
@@ -1645,7 +1700,7 @@ function mabuInitVault() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      statusEl.textContent = "entry added.";
+      statusEl.textContent = "Entry added.";
       statusEl.style.color = "var(--mabu-green)";
       mabuToast("success", "Entry added", "The new entry was saved to the case.");
       ["ceAuthor", "ceSummary", "ceFindings", "ceEmails", "ceUsernames", "ceIps"].forEach((id) => (document.getElementById(id).value = ""));
@@ -1653,7 +1708,7 @@ function mabuInitVault() {
       mabuOpenCaseDetail(mabuCurrentCaseFilename);
       mabuLoadVault();
     } catch (e) {
-      statusEl.textContent = `error: ${e.message}`;
+      statusEl.textContent = `Could not add entry: ${e.message}`;
       statusEl.style.color = "var(--mabu-red)";
     }
   });
@@ -1710,14 +1765,14 @@ async function mabuLoadStats() {
 
 async function mabuLoadReaderFileList() {
   const sel = document.getElementById("readerFileSelect");
-  sel.innerHTML = `<option value="">-- choose a file --</option>`;
+  sel.innerHTML = `<option value="">Select a case file…</option>`;
   try {
     const res = await mabuFetch("/api/vault/list");
     const data = await res.json();
     (data.files || []).forEach((f) => {
       const opt = document.createElement("option");
       opt.value = f.filename;
-      opt.textContent = `${f.title || f.filename} (${f.updated || "no date"})`;
+      opt.textContent = `${f.locked ? "🔒 " : ""}${f.title || f.filename} — updated ${mabuFormatUtc(f.updated).slice(0, 10) || "unknown"}`;
       sel.appendChild(opt);
     });
   } catch (e) {
@@ -1734,12 +1789,12 @@ function mabuInitReader() {
     const exportBtn = document.getElementById("readerExportBtn");
 
     if (!filename) {
-      statusEl.textContent = "select a file first.";
+      statusEl.textContent = "Select a case file first.";
       statusEl.style.color = "var(--mabu-amber)";
       return;
     }
 
-    statusEl.textContent = "decrypting...";
+    statusEl.textContent = "Decrypting…";
     statusEl.style.color = "var(--mabu-text-dim)";
 
     try {
@@ -1751,7 +1806,7 @@ function mabuInitReader() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Decryption failed");
 
-      statusEl.textContent = "decrypted successfully.";
+      statusEl.textContent = "Decrypted.";
       statusEl.style.color = "var(--mabu-green)";
 
       const rec = data.record;
@@ -1767,9 +1822,9 @@ function mabuInitReader() {
         URL.revokeObjectURL(url);
       };
     } catch (e) {
-      statusEl.textContent = `error: ${e.message}`;
+      statusEl.textContent = e.message;
       statusEl.style.color = "var(--mabu-red)";
-      output.innerHTML = `<p class="mabu-note">decryption failed. check passphrase and try again.</p>`;
+      output.innerHTML = `<p class="mabu-note">Decryption failed. Check the passphrase and try again.</p>`;
       exportBtn.hidden = true;
     }
   });
@@ -1779,20 +1834,27 @@ function mabuRenderRecord(rec) {
   const listField = (arr) => (arr && arr.length ? arr.map(mabuEscape).join(", ") : "–");
   const entries = rec.entries || [];
   const entriesHtml = entries.map((e, i) => `
-    <h4>entry ${i + 1} — ${mabuEscape((e.date || "").replace("T", " ").slice(0, 19))} by ${mabuEscape(e.author || "-")}</h4>
-    <p>summary: ${mabuEscape(e.summary || "–")}</p>
-    <p>findings: ${mabuEscape(e.findings || "–")}</p>
-    <p>emails: ${listField(e.emails)} | usernames: ${listField(e.usernames)} | ips: ${listField(e.ips)}</p>
+    <div class="mabu-entry">
+      <div class="mabu-entry-head">
+        <span class="mabu-entry-date">Entry ${i + 1} · ${mabuEscape(mabuFormatUtc(e.date))} UTC</span>
+        <span class="mabu-entry-author">${mabuIcon("user")} ${mabuEscape(e.author || "Unknown author")}</span>
+      </div>
+      <div class="mabu-kv"><span>Summary</span><b>${mabuEscape(e.summary || "–")}</b></div>
+      <div class="mabu-kv"><span>Findings</span><b>${mabuEscape(e.findings || "–")}</b></div>
+      <div class="mabu-kv"><span>Emails</span><b>${listField(e.emails)}</b></div>
+      <div class="mabu-kv"><span>Usernames</span><b>${listField(e.usernames)}</b></div>
+      <div class="mabu-kv"><span>IP addresses</span><b>${listField(e.ips)}</b></div>
+    </div>
   `).join("");
 
   return `
-    <h4>title</h4><p>${mabuEscape(rec.title || "–")}</p>
-    <h4>case_id</h4><p>${mabuEscape(rec.case_id || "–")}</p>
-    <h4>status</h4><p>${mabuEscape(rec.status || "–")}</p>
-    <h4>investigator</h4><p>${mabuEscape(rec.investigator || "–")}</p>
-    <h4>tags</h4><p>${listField(rec.tags)}</p>
-    <h4>entries (${entries.length})</h4>
-    ${entriesHtml || "<p>(none)</p>"}
+    <h4>Title</h4><p>${mabuEscape(rec.title || "–")}</p>
+    <h4>Case ID</h4><p class="mabu-mono">${mabuEscape(rec.case_id || "–")}</p>
+    <h4>Status</h4><p>${mabuStatusBadge(rec.status)}</p>
+    <h4>Investigator</h4><p>${mabuEscape(rec.investigator || "–")}</p>
+    <h4>Tags</h4><p>${listField(rec.tags)}</p>
+    <h4>Entries (${entries.length})</h4>
+    ${entriesHtml || "<p>None</p>"}
   `;
 }
 
@@ -1826,13 +1888,13 @@ let mabuTimelineRecords = [];
 
 async function mabuLoadTimeline() {
   const track = document.getElementById("timelineTrack");
-  track.innerHTML = `<div class="mabu-loading-state"><span class="mabu-spinner"></span> decrypting vault entries...</div>`;
+  track.innerHTML = `<div class="mabu-loading-state"><span class="mabu-spinner"></span> Decrypting cases…</div>`;
 
   let records;
   try {
     records = await mabuFetchFullRecords();
   } catch (e) {
-    track.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">?</div><h4>Could not reach API</h4><p>Is mabu-server.py running?</p></div>`;
+    track.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("alert")}</div><h4>Could not reach the MABU server</h4><p>Check that the server is running, then refresh.</p></div>`;
     return;
   }
 
@@ -1859,7 +1921,7 @@ function mabuRenderTimeline() {
   });
 
   if (!records.length) {
-    track.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">·</div><h4>No matching entries</h4><p>Create a case without a custom passphrase to see it here, or adjust your filters.</p></div>`;
+    track.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("inbox")}</div><h4>No matching entries</h4><p>Create a case without a custom passphrase to see it here, or adjust your filters.</p></div>`;
     return;
   }
 
@@ -1870,9 +1932,9 @@ function mabuRenderTimeline() {
     const lastEntry = entries[entries.length - 1];
     return `
       <div class="mabu-timeline-item">
-        <div class="mabu-timeline-date">${mabuEscape((r.updated || r.created || "").replace("T", " ").slice(0, 19))} UTC — status: ${mabuEscape(r.status || "open")}</div>
-        <div class="mabu-timeline-title" data-open-case="${mabuEscape(r.filename)}" style="cursor:pointer;" title="open case">${mabuEscape(r.title || r.filename)}</div>
-        <div class="mabu-timeline-summary">${mabuEscape((lastEntry && lastEntry.summary) || "(no entries)")} — ${entries.length} entr${entries.length === 1 ? "y" : "ies"}</div>
+        <div class="mabu-timeline-date">${mabuEscape(mabuFormatUtc(r.updated || r.created))} UTC ${mabuStatusBadge(r.status)}</div>
+        <div class="mabu-timeline-title" data-open-case="${mabuEscape(r.filename)}" style="cursor:pointer;" title="Open case" role="link" tabindex="0">${mabuEscape(r.title || r.filename)}</div>
+        <div class="mabu-timeline-summary">${mabuEscape((lastEntry && lastEntry.summary) || "No entries")} · ${entries.length} entr${entries.length === 1 ? "y" : "ies"}</div>
       </div>
     `;
   }).join("");
@@ -1937,7 +1999,8 @@ function mabuRenderGraph(graph, svgId, contextKey) {
     text.setAttribute("x", width / 2);
     text.setAttribute("y", height / 2);
     text.setAttribute("text-anchor", "middle");
-    text.textContent = "no data to graph";
+    text.setAttribute("class", "mabu-graph-empty");
+    text.textContent = "No cases to display";
     svg.appendChild(text);
     return;
   }
@@ -1965,7 +2028,7 @@ function mabuRenderGraph(graph, svgId, contextKey) {
     line.setAttribute("x2", positions[e.to].x);
     line.setAttribute("y2", positions[e.to].y);
     const title = document.createElementNS(svgNS, "title");
-    title.textContent = `shared: ${e.shared.join(", ")}`;
+    title.textContent = `Shared: ${e.shared.join(", ")}`;
     line.appendChild(title);
     g.appendChild(line);
   });
@@ -1977,13 +2040,13 @@ function mabuRenderGraph(graph, svgId, contextKey) {
     circle.setAttribute("data-node-id", n.id);
     circle.setAttribute("cx", pos.x);
     circle.setAttribute("cy", pos.y);
-    circle.setAttribute("r", 8);
+    circle.setAttribute("r", 9);
     circle.addEventListener("click", () => mabuSelectGraphNode(contextKey, n.id));
     g.appendChild(circle);
 
     const text = document.createElementNS(svgNS, "text");
     text.setAttribute("x", pos.x);
-    text.setAttribute("y", pos.y - 12);
+    text.setAttribute("y", pos.y - 15);
     text.setAttribute("text-anchor", "middle");
     text.textContent = n.label.length > 18 ? n.label.slice(0, 16) + "…" : n.label;
     g.appendChild(text);
@@ -2049,21 +2112,21 @@ function mabuSelectGraphNode(contextKey, nodeId) {
 
   panel.hidden = false;
   panel.innerHTML = `
-    <div class="mabu-kv"><span>case</span><b>${mabuEscape(node.label)}</b></div>
-    <div class="mabu-kv"><span>identifiers</span><b>${[...node.identifiers].map(mabuEscape).join(", ") || "(none)"}</b></div>
+    <div class="mabu-kv"><span>Case</span><b>${mabuEscape(node.label)}</b></div>
+    <div class="mabu-kv"><span>Identifiers</span><b>${[...node.identifiers].map(mabuEscape).join(", ") || "None"}</b></div>
     ${references.length ? `
-      <h4 class="mabu-subhead" style="margin-top:10px;">potential connections (${references.length})</h4>
+      <h4 class="mabu-subhead" style="margin-top:14px;">Potential connections <span class="mabu-count">${references.length}</span></h4>
       ${references.map((r) => `
         <div class="mabu-connection-card">
-          <div class="mabu-connection-title">shared identifier</div>
-          <div class="mabu-connection-evidence">${mabuEscape(node.label)} &harr; ${mabuEscape(r.title)}<br>via: ${r.shared.map(mabuEscape).join(", ")}</div>
-          <div class="mabu-connection-assessment">assessment: potential connection — not confirmed to be the same person</div>
-          <div class="mabu-actions" style="margin-top:8px;">
-            <button class="mabu-btn mabu-btn-secondary" data-open-case="${mabuEscape(r.filename)}">open_case()</button>
+          <div class="mabu-connection-title">Shared identifier</div>
+          <div class="mabu-connection-evidence">${mabuEscape(node.label)} &harr; ${mabuEscape(r.title)}<br><span class="mabu-mono">${r.shared.map(mabuEscape).join(", ")}</span></div>
+          <div class="mabu-connection-assessment">Assessment: potential connection. Not confirmed to be the same person.</div>
+          <div class="mabu-actions" style="margin-top:10px;">
+            <button class="mabu-btn-secondary mabu-btn-sm" data-open-case="${mabuEscape(r.filename)}" type="button">Open case</button>
           </div>
         </div>
       `).join("")}
-    ` : `<p class="mabu-note" style="margin-top:8px;">no connections to other cases found for this node.</p>`}
+    ` : `<p class="mabu-note" style="margin:10px 0 4px 0;">No connections to other cases.</p>`}
   `;
 
   panel.querySelectorAll("[data-open-case]").forEach((btn) => {
@@ -2114,7 +2177,7 @@ let mabuCorrelateData = null;
 async function mabuLoadCorrelation() {
   const clustersEl = document.getElementById("correlateClusters");
   const summaryEl = document.getElementById("correlateSummary");
-  clustersEl.innerHTML = `<div class="mabu-loading-state"><span class="mabu-spinner"></span> scanning vault for shared identifiers...</div>`;
+  clustersEl.innerHTML = `<div class="mabu-loading-state"><span class="mabu-spinner"></span> Scanning the vault for shared identifiers…</div>`;
   summaryEl.innerHTML = "";
 
   try {
@@ -2123,27 +2186,27 @@ async function mabuLoadCorrelation() {
 
     const totalIdentifiers = new Set(data.nodes.flatMap((n) => n.identifiers)).size;
     summaryEl.innerHTML = `
-      <div class="mabu-kv"><span>cases scanned</span><b>${data.nodes.length}</b></div>
-      <div class="mabu-kv"><span>unique identifiers seen</span><b>${totalIdentifiers}</b></div>
-      <div class="mabu-kv"><span>potential connections found</span><b>${data.edges.length}</b></div>
-      <div class="mabu-kv"><span>clusters</span><b>${data.clusters.length}</b></div>
+      <div class="mabu-kv"><span>Cases scanned</span><b>${data.nodes.length}</b></div>
+      <div class="mabu-kv"><span>Unique identifiers</span><b>${totalIdentifiers}</b></div>
+      <div class="mabu-kv"><span>Potential connections</span><b>${data.edges.length}</b></div>
+      <div class="mabu-kv"><span>Clusters</span><b>${data.clusters.length}</b></div>
     `;
 
     if (!data.clusters.length) {
-      clustersEl.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">·</div><h4>No connections found</h4><p>No shared identifiers were found among the decryptable cases in the vault.</p></div>`;
+      clustersEl.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("inbox")}</div><h4>No connections found</h4><p>No shared identifiers were found among the decryptable cases in the vault.</p></div>`;
     } else {
       clustersEl.innerHTML = data.clusters.map((cluster, i) => {
         const clusterEdges = data.edges.filter((e) => cluster.filenames.includes(e.from) && cluster.filenames.includes(e.to));
         const titleFor = (fname) => (data.nodes.find((n) => n.filename === fname) || {}).title || fname;
         return `
         <div class="mabu-connection-card" style="margin-bottom:12px;">
-          <div class="mabu-connection-title">cluster ${i + 1} — ${cluster.size} related cases</div>
+          <div class="mabu-connection-title">Cluster ${i + 1} · ${cluster.size} related cases</div>
           <div class="mabu-connection-evidence">
-            ${clusterEdges.map((e) => `${mabuEscape(titleFor(e.from))} &harr; ${mabuEscape(titleFor(e.to))} <span class="mabu-note">(shared: ${e.shared.map(mabuEscape).join(", ")})</span>`).join("<br>")}
+            ${clusterEdges.map((e) => `${mabuEscape(titleFor(e.from))} &harr; ${mabuEscape(titleFor(e.to))} <span class="mabu-note">· shared <span class="mabu-mono">${e.shared.map(mabuEscape).join(", ")}</span></span>`).join("<br>")}
           </div>
-          <div class="mabu-connection-assessment">assessment: potential connection between these cases via shared identifier(s) — not confirmed to be the same individual</div>
-          <div class="mabu-actions" style="margin-top:8px;">
-            <button class="mabu-btn mabu-btn-secondary" data-cluster="${i}">download_cluster_report()</button>
+          <div class="mabu-connection-assessment">Assessment: potential connection through shared identifiers. Not confirmed to be the same individual.</div>
+          <div class="mabu-actions" style="margin-top:10px;">
+            <button class="mabu-btn-secondary mabu-btn-sm" data-cluster="${i}" type="button">${mabuIcon("download")} Cluster report (PDF)</button>
           </div>
         </div>
       `;
@@ -2179,7 +2242,7 @@ async function mabuLoadCorrelation() {
 
     mabuRenderCorrelateGraph();
   } catch (e) {
-    clustersEl.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">?</div><h4>Could not reach API</h4><p>${mabuEscape(e.message)}</p></div>`;
+    clustersEl.innerHTML = `<div class="mabu-empty-state"><div class="mabu-empty-state-icon">${mabuIcon("alert")}</div><h4>Could not run link analysis</h4><p>${mabuEscape(e.message)}</p></div>`;
   }
 }
 
@@ -2224,8 +2287,8 @@ function mabuInitTimeline() {
 function mabuRenderKv(container, obj) {
   container.hidden = false;
   container.innerHTML = Object.entries(obj).map(([k, v]) => {
-    const display = Array.isArray(v) ? (v.length ? v.join(", ") : "(none)") : (v ?? "(none)");
-    return `<div class="mabu-kv"><span>${mabuEscape(k)}</span><b>${mabuEscape(display)}</b></div>`;
+    const display = Array.isArray(v) ? (v.length ? v.join(", ") : "None") : (v ?? "None");
+    return `<div class="mabu-kv"><span>${mabuEscape(mabuHumanizeKey(k))}</span><b>${mabuEscape(display)}</b></div>`;
   }).join("");
 }
 
@@ -2236,7 +2299,7 @@ function mabuLoadingBox(box, message) {
 
 function mabuErrorBox(box, message) {
   box.hidden = false;
-  box.innerHTML = `<div class="mabu-empty-state" style="padding:16px 0;"><div class="mabu-empty-state-icon">?</div><p style="margin:0;">${mabuEscape(message)}</p></div>`;
+  box.innerHTML = `<div class="mabu-empty-state" style="padding:16px 0;"><div class="mabu-empty-state-icon">${mabuIcon("alert")}</div><p style="margin:0;">${mabuEscape(message)}</p></div>`;
 }
 
 function mabuInitLookups() {
@@ -2244,7 +2307,7 @@ function mabuInitLookups() {
     const domain = document.getElementById("whoisInput").value.trim();
     const box = document.getElementById("whoisResult");
     if (!domain) return;
-    mabuLoadingBox(box, "querying WHOIS server...");
+    mabuLoadingBox(box, "Querying WHOIS server…");
     try {
       const { data } = await mabuApi(`/api/lookup/whois?domain=${encodeURIComponent(domain)}`);
       if (data.error) { mabuErrorBox(box, data.error); return; }
@@ -2262,16 +2325,16 @@ function mabuInitLookups() {
     const domain = document.getElementById("dnsInput").value.trim();
     const box = document.getElementById("dnsResult");
     if (!domain) return;
-    mabuLoadingBox(box, "resolving DNS records...");
+    mabuLoadingBox(box, "Resolving DNS records…");
     try {
       const { data } = await mabuApi(`/api/lookup/dns?domain=${encodeURIComponent(domain)}`);
       if (data.error && !data.a_records?.length) { mabuErrorBox(box, data.error); return; }
       box.hidden = false;
       box.innerHTML = `
-        <div class="mabu-kv"><span>A records</span><b>${(data.a_records || []).join(", ") || "(none)"}</b></div>
-        <div class="mabu-kv"><span>reverse DNS (PTR)</span><b>${mabuEscape(data.reverse_dns || "(none)")}</b></div>
-        <div class="mabu-kv"><span>aliases (CNAME)</span><b>${(data.aliases || []).join(", ") || "(none)"}</b></div>
-        ${data.error ? `<div class="mabu-kv"><span>note</span><b>${mabuEscape(data.error)}</b></div>` : ""}
+        <div class="mabu-kv"><span>A records</span><b>${(data.a_records || []).map(mabuEscape).join(", ") || "None"}</b></div>
+        <div class="mabu-kv"><span>Reverse DNS (PTR)</span><b>${mabuEscape(data.reverse_dns || "None")}</b></div>
+        <div class="mabu-kv"><span>Aliases (CNAME)</span><b>${(data.aliases || []).map(mabuEscape).join(", ") || "None"}</b></div>
+        ${data.error ? `<div class="mabu-kv"><span>Note</span><b>${mabuEscape(data.error)}</b></div>` : ""}
       `;
     } catch (e) {
       mabuErrorBox(box, e.message);
@@ -2284,22 +2347,25 @@ function mabuInitLookups() {
     const tbody = table.querySelector("tbody");
     if (!username) return;
     table.hidden = false;
-    tbody.innerHTML = `<tr><td colspan="5"><div class="mabu-loading-state"><span class="mabu-spinner"></span> checking platforms live (this takes a few seconds)...</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5"><div class="mabu-loading-state"><span class="mabu-spinner"></span> Checking platforms live. This takes a few seconds…</div></td></tr>`;
     try {
       const { data } = await mabuApi(`/api/lookup/handle?username=${encodeURIComponent(username)}`);
       const checkedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
-      const existsLabel = (v) => (v === true ? "likely yes" : v === false ? "likely no" : "inconclusive");
+      const existsLabel = (v) => {
+        const [status, label] = v === true ? ["confirmed", "Likely yes"] : v === false ? ["not_found", "Likely no"] : ["unknown", "Inconclusive"];
+        return `<span class="mabu-pill" data-status="${status}" style="cursor:default;">${label}</span>`;
+      };
       tbody.innerHTML = data.results.map((r) => `
         <tr>
           <td>${mabuEscape(r.platform)}</td>
-          <td><a href="${r.url}" target="_blank" rel="noopener noreferrer">${mabuEscape(r.url)}</a></td>
+          <td><a href="${mabuEscape(r.url)}" target="_blank" rel="noopener noreferrer">${mabuEscape(r.url)}</a></td>
           <td>${mabuEscape(r.detail)}</td>
           <td>${existsLabel(r.likely_exists)}</td>
-          <td>${checkedAt} UTC</td>
+          <td class="mabu-mono">${checkedAt}</td>
         </tr>
       `).join("");
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="5" class="mabu-note">error: ${mabuEscape(e.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="mabu-note">Check failed: ${mabuEscape(e.message)}</td></tr>`;
     }
   });
 
@@ -2308,21 +2374,21 @@ function mabuInitLookups() {
     const region = document.getElementById("phoneRegion").value.trim() || "US";
     const box = document.getElementById("phoneResult");
     if (!number) return;
-    mabuLoadingBox(box, "parsing locally...");
+    mabuLoadingBox(box, "Parsing locally…");
     try {
       const { data } = await mabuApi(`/api/lookup/phone?number=${encodeURIComponent(number)}&region=${encodeURIComponent(region)}`);
       if (data.error) { mabuErrorBox(box, data.error); return; }
       box.hidden = false;
       box.innerHTML = `
-        <div class="mabu-kv"><span>valid</span><b>${data.valid ? "yes" : "no"}</b></div>
-        <div class="mabu-kv"><span>possible</span><b>${data.possible ? "yes" : "no"}</b></div>
-        <div class="mabu-kv"><span>e164</span><b>${mabuEscape(data.e164 || "–")}</b></div>
-        <div class="mabu-kv"><span>national format</span><b>${mabuEscape(data.national || "–")}</b></div>
-        <div class="mabu-kv"><span>country code</span><b>${mabuEscape(data.country_code ?? "–")}</b></div>
-        <div class="mabu-kv"><span>region (offline db)</span><b>${mabuEscape(data.region || "unknown")}</b></div>
-        <div class="mabu-kv"><span>carrier block (offline db)</span><b>${mabuEscape(data.carrier || "not available for this number")}</b></div>
-        <div class="mabu-kv"><span>timezone(s) (offline db)</span><b>${(data.timezones || []).join(", ") || "unknown"}</b></div>
-        <div class="mabu-kv"><span>number type</span><b>${mabuEscape(data.number_type || "–")}</b></div>
+        <div class="mabu-kv"><span>Valid</span><b>${data.valid ? "Yes" : "No"}</b></div>
+        <div class="mabu-kv"><span>Possible</span><b>${data.possible ? "Yes" : "No"}</b></div>
+        <div class="mabu-kv"><span>E.164</span><b>${mabuEscape(data.e164 || "–")}</b></div>
+        <div class="mabu-kv"><span>National format</span><b>${mabuEscape(data.national || "–")}</b></div>
+        <div class="mabu-kv"><span>Country code</span><b>${mabuEscape(data.country_code ?? "–")}</b></div>
+        <div class="mabu-kv"><span>Region (offline data)</span><b>${mabuEscape(data.region || "Unknown")}</b></div>
+        <div class="mabu-kv"><span>Carrier block (offline data)</span><b>${mabuEscape(data.carrier || "Not available for this number")}</b></div>
+        <div class="mabu-kv"><span>Time zones (offline data)</span><b>${(data.timezones || []).map(mabuEscape).join(", ") || "Unknown"}</b></div>
+        <div class="mabu-kv"><span>Number type</span><b>${mabuEscape(data.number_type || "–")}</b></div>
         <p class="mabu-note" style="margin-top:8px;">All fields come from libphonenumber's bundled offline data (based on number-range allocation), not a live carrier or subscriber lookup — this cannot identify who owns the number.</p>
       `;
     } catch (e) {
@@ -2333,15 +2399,15 @@ function mabuInitLookups() {
   mabuFetch("/api/lookup/breach-status").then((r) => r.json()).then((data) => {
     const note = document.getElementById("breachStatusNote");
     note.textContent = data.configured
-      ? "using the official HaveIBeenPwned API with your configured key."
-      : "not configured — set MABU_HIBP_API_KEY on the server to enable this (requires your own paid HIBP API key).";
+      ? "Uses the official HaveIBeenPwned API with the key configured on this server."
+      : "Not configured. Set MABU_HIBP_API_KEY on the server to enable this (requires your own HIBP API key).";
   }).catch(() => {});
 
   document.getElementById("breachCheckBtn").addEventListener("click", async () => {
     const email = document.getElementById("breachInput").value.trim();
     const box = document.getElementById("breachResult");
     if (!email) return;
-    mabuLoadingBox(box, "querying HaveIBeenPwned API...");
+    mabuLoadingBox(box, "Querying HaveIBeenPwned…");
     try {
       const res = await mabuFetch(`/api/lookup/breach?email=${encodeURIComponent(email)}`);
       const data = await res.json();
@@ -2351,11 +2417,11 @@ function mabuInitLookups() {
       }
       if (!data.breached) {
         box.hidden = false;
-        box.innerHTML = `<div class="mabu-empty-state" style="padding:16px 0;"><div class="mabu-empty-state-icon">OK</div><p style="margin:0;">No breaches found for this email in the HIBP database.</p></div>`;
+        box.innerHTML = `<div class="mabu-empty-state" style="padding:16px 0;"><div class="mabu-empty-state-icon">${mabuIcon("check")}</div><p style="margin:0;">No breaches found for this email in the HIBP database.</p></div>`;
         return;
       }
       box.hidden = false;
-      box.innerHTML = `<div class="mabu-kv"><span>breach count</span><b>${data.breach_count}</b></div>` +
+      box.innerHTML = `<div class="mabu-kv"><span>Breaches</span><b>${mabuEscape(data.breach_count)}</b></div>` +
         data.breaches.map((b) => `
           <div class="mabu-kv"><span>${mabuEscape(b.title)}</span><b>${mabuEscape(b.breach_date)} — ${mabuEscape((b.data_classes || []).join(", "))}</b></div>
         `).join("");
@@ -2369,7 +2435,7 @@ function mabuInitLookups() {
     const box = document.getElementById("imageMetaResult");
     const file = fileInput.files[0];
     if (!file) return;
-    mabuLoadingBox(box, "extracting metadata locally...");
+    mabuLoadingBox(box, "Extracting metadata…");
     try {
       const b64 = await mabuFileToBase64(file);
       const res = await mabuFetch("/api/lookup/image-metadata", {
@@ -2383,19 +2449,19 @@ function mabuInitLookups() {
         return;
       }
       let html = `
-        <div class="mabu-kv"><span>file</span><b>${mabuEscape(file.name)}</b></div>
-        <div class="mabu-kv"><span>size</span><b>${(file.size / 1024).toFixed(1)} KB</b></div>
-        <div class="mabu-kv"><span>format</span><b>${mabuEscape(data.format)}</b></div>
-        <div class="mabu-kv"><span>dimensions</span><b>${data.size.width} x ${data.size.height}</b></div>
+        <div class="mabu-kv"><span>File</span><b>${mabuEscape(file.name)}</b></div>
+        <div class="mabu-kv"><span>Size</span><b>${(file.size / 1024).toFixed(1)} KB</b></div>
+        <div class="mabu-kv"><span>Format</span><b>${mabuEscape(data.format)}</b></div>
+        <div class="mabu-kv"><span>Dimensions</span><b>${mabuEscape(data.size.width)} × ${mabuEscape(data.size.height)} px</b></div>
       `;
       if (data.gps) {
-        html += `<div class="mabu-kv"><span><span class="mabu-provenance" data-kind="observed">gps found</span></span><b><a href="${data.gps.maps_url}" target="_blank" rel="noopener noreferrer">${data.gps.latitude}, ${data.gps.longitude}</a></b></div>`;
+        html += `<div class="mabu-kv"><span><span class="mabu-provenance" data-kind="observed">Found</span> GPS location</span><b><a href="${data.gps.maps_url}" target="_blank" rel="noopener noreferrer">${data.gps.latitude}, ${data.gps.longitude}</a></b></div>`;
       } else {
-        html += `<div class="mabu-kv"><span>gps</span><b>(none found in EXIF)</b></div>`;
+        html += `<div class="mabu-kv"><span>GPS location</span><b>None in EXIF</b></div>`;
       }
       const exifEntries = Object.entries(data.exif || {});
       if (exifEntries.length) {
-        html += `<h4 class="mabu-subhead" style="margin-top:10px;">exif fields</h4>`;
+        html += `<h4 class="mabu-subhead" style="margin-top:14px;">EXIF fields</h4>`;
         html += exifEntries.map(([k, v]) => `<div class="mabu-kv"><span>${mabuEscape(k)}</span><b>${mabuEscape(v)}</b></div>`).join("");
       } else {
         html += `<p class="mabu-note" style="margin-top:8px;">No EXIF metadata found in this image.</p>`;
@@ -2429,35 +2495,35 @@ async function mabuLoadAdminPanel() {
 
 async function mabuLoadUsers() {
   const tbody = document.querySelector("#usersTable tbody");
-  tbody.innerHTML = `<tr><td colspan="6" class="mabu-note">loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6"><div class="mabu-loading-state"><span class="mabu-spinner"></span> Loading accounts…</div></td></tr>`;
   try {
     const { data } = await mabuApi("/api/users");
     const users = data.users || [];
     if (!users.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="mabu-note">no users found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="mabu-note">No accounts found.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = users.map((u) => {
       const isSelf = u.username === mabuCurrentUser.username;
       const roleControl = isSelf
-        ? `${mabuEscape(u.role)} <span class="mabu-note">(you)</span>`
-        : `<select data-role-user="${mabuEscape(u.username)}" aria-label="role for ${mabuEscape(u.username)}">
-             <option value="investigator" ${u.role === "investigator" ? "selected" : ""}>investigator</option>
-             <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
+        ? `${u.role === "admin" ? "Administrator" : "Investigator"} <span class="mabu-you">You</span>`
+        : `<select data-role-user="${mabuEscape(u.username)}" aria-label="Role for ${mabuEscape(u.username)}" style="height:30px; width:auto;">
+             <option value="investigator" ${u.role === "investigator" ? "selected" : ""}>Investigator</option>
+             <option value="admin" ${u.role === "admin" ? "selected" : ""}>Administrator</option>
            </select>`;
       return `
       <tr>
-        <td>${mabuEscape(u.username)}</td>
+        <td><span class="mabu-cell-title">${mabuEscape(u.username)}</span></td>
         <td>${roleControl}</td>
-        <td>${u.active ? "active" : "deactivated"}</td>
-        <td>${mabuEscape((u.created || "").slice(0, 19).replace("T", " "))}</td>
-        <td>${mabuEscape((u.last_login || "").slice(0, 19).replace("T", " ") || "never")}</td>
+        <td><span class="mabu-status-badge" data-status="${u.active ? "active" : "inactive"}">${u.active ? "Active" : "Deactivated"}</span></td>
+        <td class="mabu-mono">${mabuEscape(mabuFormatUtc(u.created))}</td>
+        <td class="mabu-mono">${mabuEscape(mabuFormatUtc(u.last_login) || "Never")}</td>
         <td>
-          ${!isSelf && u.active ? `<button class="mabu-btn-danger" data-action="deactivate" data-user="${mabuEscape(u.username)}">deactivate</button>` : ""}
-          ${!isSelf && !u.active ? `<button class="mabu-btn-secondary mabu-btn" data-action="reactivate" data-user="${mabuEscape(u.username)}">reactivate</button>` : ""}
-          <button class="mabu-btn-secondary mabu-btn" data-action="reset" data-user="${mabuEscape(u.username)}">reset_pw</button>
-          ${!isSelf ? `<button class="mabu-btn-danger" data-action="delete" data-user="${mabuEscape(u.username)}">delete</button>` : ""}
+          <button class="mabu-btn-secondary" data-action="reset" data-user="${mabuEscape(u.username)}" type="button">Reset password</button>
+          ${!isSelf && u.active ? `<button class="mabu-btn-danger" data-action="deactivate" data-user="${mabuEscape(u.username)}" type="button">Deactivate</button>` : ""}
+          ${!isSelf && !u.active ? `<button class="mabu-btn-secondary" data-action="reactivate" data-user="${mabuEscape(u.username)}" type="button">Reactivate</button>` : ""}
+          ${!isSelf ? `<button class="mabu-btn-danger" data-action="delete" data-user="${mabuEscape(u.username)}" type="button" title="Delete account" aria-label="Delete account">${mabuIcon("trash")}</button>` : ""}
         </td>
       </tr>
     `;
@@ -2469,8 +2535,8 @@ async function mabuLoadUsers() {
         const newRole = sel.value;
         const confirmed = await mabuConfirm({
           title: "Change role?",
-          body: `Change ${username}'s role to ${newRole}? This takes effect immediately.`,
-          confirmLabel: "change role",
+          body: `Change ${username}'s role to ${newRole === "admin" ? "Administrator" : "Investigator"}? This takes effect immediately.`,
+          confirmLabel: "Change role",
         });
         if (!confirmed) { mabuLoadUsers(); return; }
         try {
@@ -2495,7 +2561,7 @@ async function mabuLoadUsers() {
           title: "Deactivate user?",
           body: `${username} will be unable to log in until reactivated. This does not delete their data.`,
           danger: true,
-          confirmLabel: "deactivate",
+          confirmLabel: "Deactivate",
         });
         if (!confirmed) return;
         try {
@@ -2525,7 +2591,7 @@ async function mabuLoadUsers() {
           title: "Delete user account?",
           body: `This permanently removes ${username}'s account. This cannot be undone. Their case files are not affected.`,
           danger: true,
-          confirmLabel: "delete permanently",
+          confirmLabel: "Delete permanently",
         });
         if (!confirmed) return;
         try {
@@ -2541,20 +2607,21 @@ async function mabuLoadUsers() {
       btn.addEventListener("click", () => mabuOpenResetPasswordFlow(btn.dataset.user));
     });
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6" class="mabu-note">error: ${mabuEscape(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="mabu-note">Could not load accounts: ${mabuEscape(e.message)}</td></tr>`;
   }
 }
 
 function mabuOpenResetPasswordFlow(username) {
   const overlay = document.getElementById("mabuModalOverlay");
   const modal = document.getElementById("mabuModal");
-  document.getElementById("mabuModalTitle").textContent = `Reset password: ${username}`;
+  document.getElementById("mabuModalTitle").textContent = `Reset password for ${username}`;
   document.getElementById("mabuModalBody").innerHTML = "";
   const body = document.getElementById("mabuModalBody");
-  body.innerHTML = `<div class="mabu-field"><label for="resetPwInput">new password (min 8 characters)</label><input type="password" id="resetPwInput" autocomplete="new-password"></div>`;
+  body.innerHTML = `<div class="mabu-field"><label for="resetPwInput">New password (at least 8 characters)</label><input type="password" id="resetPwInput" autocomplete="new-password"></div>`;
   const confirmBtn = document.getElementById("mabuModalConfirm");
   const cancelBtn = document.getElementById("mabuModalCancel");
-  confirmBtn.textContent = "reset password";
+  confirmBtn.textContent = "Reset password";
+  cancelBtn.textContent = "Cancel";
   modal.classList.remove("mabu-modal-danger");
 
   function cleanup() {
@@ -2589,7 +2656,7 @@ function mabuOpenResetPasswordFlow(username) {
 
 async function mabuLoadAuditLog() {
   const tbody = document.querySelector("#auditTable tbody");
-  tbody.innerHTML = `<tr><td colspan="4" class="mabu-note">loading...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="4"><div class="mabu-loading-state"><span class="mabu-spinner"></span> Loading audit log…</div></td></tr>`;
   try {
     const { data } = await mabuApi("/api/audit-log?limit=300");
     mabuAuditCache = data.entries || [];
@@ -2597,13 +2664,13 @@ async function mabuLoadAuditLog() {
     const actionFilter = document.getElementById("auditActionFilter");
     const actions = [...new Set(mabuAuditCache.map((e) => e.action))].sort();
     const currentVal = actionFilter.value;
-    actionFilter.innerHTML = `<option value="">-- any action --</option>` +
-      actions.map((a) => `<option value="${mabuEscape(a)}">${mabuEscape(a)}</option>`).join("");
+    actionFilter.innerHTML = `<option value="">All actions</option>` +
+      actions.map((a) => `<option value="${mabuEscape(a)}">${mabuEscape(mabuHumanizeKey(a))}</option>`).join("");
     actionFilter.value = currentVal;
 
     mabuRenderAuditLog();
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="4" class="mabu-note">error: ${mabuEscape(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="mabu-note">Could not load the audit log: ${mabuEscape(e.message)}</td></tr>`;
   }
 }
 
@@ -2622,15 +2689,15 @@ function mabuRenderAuditLog() {
   });
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="mabu-note">no matching audit entries.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="mabu-note">No matching audit entries.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map((e) => `
     <tr>
-      <td>${mabuEscape((e.time || "").slice(0, 19).replace("T", " "))}</td>
+      <td class="mabu-mono">${mabuEscape(mabuFormatUtc(e.time))}</td>
       <td>${mabuEscape(e.actor)}</td>
-      <td>${mabuEscape(e.action.replace(/_/g, " "))}</td>
+      <td>${mabuEscape(mabuHumanizeKey(e.action))}</td>
       <td>${mabuEscape(e.detail)}</td>
     </tr>
   `).join("");
@@ -2640,10 +2707,10 @@ async function mabuLoadSystemStatus() {
   try {
     const { data } = await mabuApi("/api/system/status");
     document.getElementById("sysVaultDir").textContent = data.vault_dir;
-    document.getElementById("sysVaultKey").textContent = data.vault_key_present ? "present" : "MISSING";
+    document.getElementById("sysVaultKey").textContent = data.vault_key_present ? "Present" : "Missing";
     document.getElementById("sysCaseCount").textContent = data.case_count;
-    document.getElementById("sysPublicOrigin").textContent = data.public_origin || "(local only)";
-    document.getElementById("sysHibp").textContent = data.hibp_configured ? "configured" : "not configured";
+    document.getElementById("sysPublicOrigin").textContent = data.public_origin || "Not set (local only)";
+    document.getElementById("sysHibp").textContent = data.hibp_configured ? "Configured" : "Not configured";
   } catch (e) {
     // Non-fatal — admin can still use the rest of the panel.
   }
@@ -2664,7 +2731,7 @@ function mabuInitAdmin() {
     const statusEl = document.getElementById("usersStatus");
 
     if (!username || !password) {
-      statusEl.textContent = "username and password required.";
+      statusEl.textContent = "Enter a username and password.";
       statusEl.style.color = "var(--mabu-amber)";
       return;
     }
@@ -2675,14 +2742,14 @@ function mabuInitAdmin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role }),
       });
-      statusEl.textContent = `user '${username}' created.`;
+      statusEl.textContent = `Account "${username}" created.`;
       statusEl.style.color = "var(--mabu-green)";
-      mabuToast("success", "User created", `${username} (${role})`);
+      mabuToast("success", "Account created", `${username} (${role === "admin" ? "Administrator" : "Investigator"})`);
       document.getElementById("newUserUsername").value = "";
       document.getElementById("newUserPassword").value = "";
       mabuLoadUsers();
     } catch (e) {
-      statusEl.textContent = `error: ${e.message}`;
+      statusEl.textContent = `Could not create account: ${e.message}`;
       statusEl.style.color = "var(--mabu-red)";
     }
   });
@@ -2718,9 +2785,9 @@ function mabuInitTemplates() {
 
       preview.hidden = false;
       preview.innerHTML = `
-        <div class="mabu-kv"><span>template</span><b>${mabuEscape(tpl.label || templateId)}</b></div>
-        <div class="mabu-kv"><span>default tags</span><b>${(tpl.tags || []).map(mabuEscape).join(", ") || "(none)"}</b></div>
-        <div class="mabu-kv"><span>suggested summary</span><b>${mabuEscape(tpl.summary || "(none)")}</b></div>
+        <div class="mabu-kv"><span>Template</span><b>${mabuEscape(tpl.label || templateId)}</b></div>
+        <div class="mabu-kv"><span>Default tags</span><b>${(tpl.tags || []).map(mabuEscape).join(", ") || "None"}</b></div>
+        <div class="mabu-kv"><span>Suggested summary</span><b>${mabuEscape(tpl.summary || "None")}</b></div>
       `;
 
       const tagsEl = document.getElementById("rTags");
@@ -2732,7 +2799,7 @@ function mabuInitTemplates() {
         const confirmed = await mabuConfirm({
           title: "Apply template?",
           body: "This will replace the tags, summary, and findings you've already typed with this template's defaults.",
-          confirmLabel: "apply template",
+          confirmLabel: "Apply template",
         });
         if (!confirmed) return;
       }
@@ -2771,7 +2838,7 @@ function mabuInitTemplates() {
         if (data.related && data.related.length) {
           box.hidden = false;
           document.getElementById("rRelatedList").innerHTML = data.related.map((r) => `
-            <div class="mabu-kv"><span>related case: ${mabuEscape(r.title)}</span><b>shared identifier: ${mabuEscape(r.shared.join(", "))}</b></div>
+            <div class="mabu-kv"><span>${mabuEscape(r.title)}</span><b>${mabuEscape(r.shared.join(", "))}</b></div>
           `).join("");
         } else {
           box.hidden = true;
@@ -2794,7 +2861,7 @@ async function mabuLoadVaultTags() {
   try {
     const res = await mabuFetch("/api/vault/tags");
     const data = await res.json();
-    select.innerHTML = `<option value="">-- filter by tag --</option>` + data.tags.map((t) => `<option value="${mabuEscape(t)}">${mabuEscape(t)}</option>`).join("");
+    select.innerHTML = `<option value="">All tags</option>` + data.tags.map((t) => `<option value="${mabuEscape(t)}">${mabuEscape(t)}</option>`).join("");
   } catch (e) {
     /* leave default */
   }
@@ -2809,13 +2876,13 @@ function mabuInitVaultFilters() {
     if (status) params.set("status", status);
 
     const tbody = document.querySelector("#vaultTable tbody");
-    tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">loading...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="mabu-loading-state"><span class="mabu-spinner"></span> Applying filters…</div></td></tr>`;
     try {
       const res = await mabuFetch(`/api/vault/list?${params.toString()}`);
       const data = await res.json();
       mabuRenderVaultRows(data.files || []);
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">filter failed.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="mabu-note">Could not apply filters.</td></tr>`;
     }
   });
 }
@@ -2832,7 +2899,7 @@ function mabuInitCaseDetailExtras() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tags, passphrase: null }),
       });
-      mabuToast("success", "Tags updated", tags.join(", ") || "(cleared)");
+      mabuToast("success", "Tags updated", tags.join(", ") || "All tags removed.");
       mabuOpenCaseDetail(mabuCurrentCaseFilename);
       mabuLoadVault();
       mabuLoadVaultTags();
@@ -2846,84 +2913,11 @@ function mabuInitCaseDetailExtras() {
 
 function mabuApplyReducedFx(enabled) {
   document.documentElement.classList.toggle("mabu-reduced-fx", enabled);
-  if (enabled) {
-    mabuStopRain();
-  } else {
-    mabuStartRain();
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Background effect: falling Cyrillic characters ("digital rain"), matching
-// the Russian-rendered "МАБУ" header. Purely decorative — canvas-drawn,
-// no external assets/fonts. Respects the same reduced-motion toggle as the
-// scanline/noise overlays.
-// ---------------------------------------------------------------------------
-
-const MABU_RAIN_CHARS = "МАБУАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ0123456789";
-let mabuRainState = null;
-
-function mabuStartRain() {
-  if (mabuRainState) return; // already running
-  const canvas = document.getElementById("mabuRain");
-  if (!canvas || !canvas.getContext) return;
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-  const ctx = canvas.getContext("2d");
-  const fontSize = 16;
-  let columns = 0;
-  let drops = [];
-
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    columns = Math.floor(canvas.width / fontSize);
-    drops = new Array(columns).fill(0).map(() => Math.floor(Math.random() * -40));
-  }
-
-  function draw() {
-    ctx.fillStyle = "rgba(1, 4, 1, 0.08)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.font = `${fontSize}px "Cascadia Code", "Consolas", monospace`;
-    for (let i = 0; i < columns; i++) {
-      const char = MABU_RAIN_CHARS[Math.floor(Math.random() * MABU_RAIN_CHARS.length)];
-      const x = i * fontSize;
-      const y = drops[i] * fontSize;
-
-      ctx.fillStyle = "rgba(200, 255, 220, 0.85)";
-      ctx.fillText(char, x, y);
-      ctx.fillStyle = "rgba(0, 255, 102, 0.55)";
-      ctx.fillText(char, x, y + fontSize);
-
-      if (y > canvas.height && Math.random() > 0.975) {
-        drops[i] = 0;
-      }
-      drops[i]++;
-    }
-  }
-
-  const intervalId = setInterval(draw, 60);
-  window.addEventListener("resize", resize);
-  resize();
-
-  mabuRainState = { intervalId, resize };
-}
-
-function mabuStopRain() {
-  if (!mabuRainState) return;
-  clearInterval(mabuRainState.intervalId);
-  window.removeEventListener("resize", mabuRainState.resize);
-  const canvas = document.getElementById("mabuRain");
-  if (canvas && canvas.getContext) {
-    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-  }
-  mabuRainState = null;
 }
 
 function mabuLoadSettingsPanel() {
   document.getElementById("settingsUsername").textContent = mabuCurrentUser.username || "–";
-  document.getElementById("settingsRole").textContent = mabuCurrentUser.role || "–";
+  document.getElementById("settingsRole").textContent = mabuCurrentUser.role === "admin" ? "Administrator" : mabuCurrentUser.role ? "Investigator" : "–";
   document.getElementById("settingsApiOrigin").textContent = MABU_API || window.location.origin;
   document.getElementById("settingsVersion").textContent = MABU_VERSION;
   document.getElementById("settingReducedFx").checked = localStorage.getItem("mabu_reduced_fx") === "1";
@@ -2941,7 +2935,7 @@ function mabuInitSettings() {
     localStorage.setItem("mabu_skip_boot", e.target.checked ? "1" : "0");
   });
 
-  document.getElementById("mabuVersionTag").textContent = `MABU v${MABU_VERSION} :: RESEARCH WORKSTATION`;
+  document.getElementById("mabuVersionTag").textContent = `MABU ${MABU_VERSION}`;
   mabuApplyReducedFx(localStorage.getItem("mabu_reduced_fx") === "1");
 }
 
@@ -2964,13 +2958,13 @@ function mabuOpenNotificationPanel() {
   const confirmBtn = document.getElementById("mabuModalConfirm");
   const cancelBtn = document.getElementById("mabuModalCancel");
   confirmBtn.hidden = true;
-  cancelBtn.textContent = "close";
+  cancelBtn.textContent = "Close";
 
   function cleanup() {
     overlay.hidden = true;
     confirmBtn.hidden = false;
-    confirmBtn.textContent = "confirm";
-    cancelBtn.textContent = "cancel";
+    confirmBtn.textContent = "Confirm";
+    cancelBtn.textContent = "Cancel";
     cancelBtn.removeEventListener("click", onClose);
   }
   function onClose() { cleanup(); }
@@ -2989,16 +2983,22 @@ function mabuCommandList() {
   const isAdmin = mabuCurrentUser.role === "admin";
   const cmds = [
     { label: "New case", hint: "Ctrl+N", action: () => mabuGoTo("research") },
-    { label: "Search vault", hint: "Ctrl+/", action: mabuFocusVaultSearch },
-    { label: "Correlate vault", hint: "", action: () => mabuGoTo("correlate") },
-    { label: "Public records", hint: "", action: () => mabuGoTo("lookups") },
+    { label: "Search the vault", hint: "Ctrl+/", action: mabuFocusVaultSearch },
+    { label: "Case vault", hint: "", action: () => mabuGoTo("vault") },
+    { label: "Link analysis", hint: "", action: () => mabuGoTo("correlate") },
     { label: "Timeline", hint: "", action: () => mabuGoTo("timeline") },
-    { label: "Reader", hint: "", action: () => mabuGoTo("reader") },
+    { label: "Case reader", hint: "", action: () => mabuGoTo("reader") },
+    { label: "Public records", hint: "", action: () => mabuGoTo("lookups") },
+    { label: "Email analysis", hint: "", action: () => mabuGoTo("email") },
+    { label: "Username analysis", hint: "", action: () => mabuGoTo("username") },
+    { label: "Discord analysis", hint: "", action: () => mabuGoTo("discord") },
+    { label: "Network analysis", hint: "", action: () => mabuGoTo("network") },
+    { label: "Hashing & encoding", hint: "", action: () => mabuGoTo("toolkit") },
     { label: "Overview", hint: "", action: () => mabuGoTo("home") },
     { label: "Settings", hint: "", action: () => mabuGoTo("settings") },
   ];
-  if (isAdmin) cmds.push({ label: "Admin: users & audit", hint: "", action: () => mabuGoTo("admin") });
-  cmds.push({ label: "Logout", hint: "", action: () => document.getElementById("logoutBtn").click() });
+  if (isAdmin) cmds.push({ label: "Users & audit", hint: "Admin", action: () => mabuGoTo("admin") });
+  cmds.push({ label: "Sign out", hint: "", action: () => document.getElementById("logoutBtn").click() });
   return cmds;
 }
 
@@ -3014,7 +3014,7 @@ function mabuRenderCmdkList(query) {
 
   const list = document.getElementById("mabuCmdkList");
   if (!mabuCmdkFiltered.length) {
-    list.innerHTML = `<div class="mabu-cmdk-empty">no matching commands</div>`;
+    list.innerHTML = `<div class="mabu-cmdk-empty">No matching commands</div>`;
     return;
   }
   list.innerHTML = mabuCmdkFiltered.map((c, i) => `

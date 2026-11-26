@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/mabu-logo.svg" alt="MABU cyber team logo" width="260">
+  <img src="assets/mabu-logo.svg" alt="MABU — Intelligence Research Platform" width="640">
 </p>
 
 # MABU Dashboard
@@ -14,12 +14,13 @@ A personal OSINT research platform for organizing and documenting publicly avail
 mabu-dashboard/
 ├── index.html                # MABU Dashboard main interface (login gate + app shell)
 ├── css/
-│   └── mabu-styles.css       # MABU dark theme styling
+│   └── mabu-styles.css       # Design system + component styles
 ├── js/
 │   └── mabu-core.js          # MABU frontend functionality
 ├── assets/
-│   ├── mabu-logo.svg         # full emblem (README, login screen)
-│   └── mabu-mark.svg         # compact hex "М" mark (sidebar, favicon)
+│   ├── mabu-logo.svg         # README banner (lettering outlined, no font dependency)
+│   ├── mabu-mark.svg         # aperture mark (sidebar, sign-in, favicon)
+│   └── fonts/                # self-hosted IBM Plex Sans/Mono (SIL OFL, see OFL.txt)
 ├── api/
 │   ├── mabu-server.py        # Flask backend — auth, cases, correlation, lookups, reports
 │   ├── mabu_auth.py          # Multi-user auth: roles, bcrypt, rate limiting, audit log
@@ -43,7 +44,7 @@ mabu-dashboard/
 
 ## Features
 
-The dashboard uses a CRT-terminal aesthetic — animated boot sequence (skippable), scanline overlay, glowing green-on-black monospace UI, with a "reduced effects" setting for users who want it dialed back — on top of the following modules:
+The dashboard is a dark, analyst-workstation interface: navy surfaces with a restrained blue accent and gold brand detail, IBM Plex Sans/Mono typography (self-hosted, so it loads under the deployment's strict Content-Security-Policy), a persistent "restricted system · activity is audited" banner, a two-panel sign-in screen, and plain-language labels throughout. A short startup screen can be skipped, and a "reduce motion" setting (also following the OS preference) turns off transitions. It provides the following modules:
 
 - **Auth** — multi-user accounts with **admin**/**investigator** roles, bcrypt-hashed passwords, server-side session cookies (12-hour lifetime), per-IP login rate limiting (5 attempts / 5 min), CSRF-protected state-changing requests, and a full audit log
 - **Case workspace** — each case opens as a tabbed workspace (Overview / Entries / Identifiers / Attachments / Activity / Report), holding multiple timestamped entries, a status (`open` / `closed` / `cold`), tags (with filtering), file attachments per entry, and a full activity log. Cases can also be permanently deleted (from the vault list or the case workspace header) — this is irreversible with no backup or recycle bin, so it always requires an explicit confirmation.
@@ -54,10 +55,10 @@ The dashboard uses a CRT-terminal aesthetic — animated boot sequence (skippabl
 - **Public Records** — each tool is labeled by where its data comes from (public infrastructure / external API / local-only): real WHOIS and DNS lookups (structured by record type), live handle-existence checks limited to GitHub/GitLab/Reddit/Steam — platforms where a nonexistent profile can actually be distinguished from a real one by inspecting the response, not just its HTTP status (Instagram/TikTok/Twitch/Telegram were deliberately excluded because they return the same generic response to bots either way, which produced false positives), local phone number parsing (region/timezone/carrier-block via libphonenumber's offline data — no external API, no subscriber/owner lookup), and an opt-in HaveIBeenPwned breach check using your own API key
 - **Image metadata** — extracts EXIF data (camera info, timestamps, embedded GPS coordinates) from an uploaded image, entirely locally — the image is never transmitted anywhere else
 - **Admin panel** (admin role only) — create/deactivate/reactivate/delete users, change roles, reset passwords, see each user's last-login time, browse a filterable/searchable audit log, and view non-secret system status (vault/key presence, case count, HIBP configuration)
-- **Reader** — decrypt and view raw `.mabu` case data, export to JSON
+- **Case reader** — decrypt and view any `.mabu` case (including passphrase-protected ones), export to JSON
 - **Timeline** — chronological, filterable view of all decryptable cases, plus the same relationship graph as Correlate
 - **Command palette** (Ctrl+K) — jump to any view or action by typing; only shows commands your role is allowed to use
-- **Settings** — client-side preferences only (reduced effects, skip-boot), plus read-only session/version info — no security-critical configuration lives here
+- **Settings** — client-side preferences only (reduce motion, skip startup screen), plus read-only session/version info — no security-critical configuration lives here
 - **Email / Username / Discord / Network-IP / Hash & Encode** — the original manual-tracking and utility tools (format validation, snowflake decoding, CIDR calculator, hashing, etc.)
 
 ## Requirements
@@ -228,7 +229,9 @@ sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d mabu.yourdomain.com
 ```
 
-certbot rewrites the nginx config to redirect HTTP → HTTPS automatically. Since the generated `mabu.service` already sets `MABU_PUBLIC_ORIGIN=https://mabu.yourdomain.com` in its environment, `mabu-server.py` automatically turns on `SESSION_COOKIE_SECURE` and restricts CORS to that exact origin — no manual code edits needed. The frontend (`js/mabu-core.js`) also auto-detects it's being served over http/https and calls the API same-origin through nginx's `/api/` proxy, rather than hardcoding `127.0.0.1`.
+certbot rewrites the nginx config to redirect HTTP → HTTPS automatically. Since the generated `mabu.service` already sets `MABU_PUBLIC_ORIGIN=https://mabu.yourdomain.com` in its environment, `mabu-server.py` automatically turns on `SESSION_COOKIE_SECURE` and restricts CORS to that exact origin — no manual code edits needed. The frontend (`js/mabu-core.js`) also auto-detects it's being served over http/https and calls the API on the same origin, rather than hardcoding `127.0.0.1`.
+
+The generated nginx config proxies **everything** to `mabu-server.py`, which serves only `index.html`, `css/`, `js/`, `assets/` and `/api/`. nginx deliberately never serves files from the install directory itself: that directory also contains the vault key and encrypted cases (`vault/`), the session secret and user database (`config/`), and `.git/`. If you deployed with a config generated before this change (one containing `root /path/to/mabu;`), regenerate it with `python setup.py --domain <your domain>`, reinstall it, and treat the session secret and vault key as exposed. Delete `config/session-secret.key` and restart the service (a new one is generated and every existing session is invalidated). The vault key can't be rotated without re-encrypting every case, so assume any case files that were reachable under the old config may have been read.
 
 ### 5. Updating via git pull
 
@@ -280,7 +283,7 @@ Without a key set, the tool clearly reports itself as "not configured" rather th
 - **All state-changing requests (POST/PUT/PATCH/DELETE) require a CSRF token** (`X-CSRF-Token` header, issued per-session on login) in addition to the session cookie — this stops a malicious page from silently triggering actions using your logged-in session.
 - **Every security-relevant action is audit-logged**: logins (success/failure/rate-limited), logouts, password changes, user creation/deactivation/deletion/role changes, case creation, entries, status/tag changes, case decryption, case deletion, attachment downloads, and report generation — visible to admins in the Admin panel.
 - Sessions expire after 12 hours of being issued (`PERMANENT_SESSION_LIFETIME`); logging out clears the session server-side immediately.
-- Security response headers are set on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, a restrictive `Permissions-Policy`, and (once `MABU_PUBLIC_ORIGIN` is set) `Strict-Transport-Security`. Content-Security-Policy is intentionally set in the nginx config (see `deploy/nginx.conf`), not by Flask, since nginx — not Flask — serves the actual HTML/JS/CSS in production.
+- Security response headers are set on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, a restrictive `Permissions-Policy`, and (once `MABU_PUBLIC_ORIGIN` is set) `Strict-Transport-Security`. Content-Security-Policy is set in the nginx config (see `deploy/nginx.conf`), which applies it to every response it proxies, including the HTML/JS/CSS that `mabu-server.py` serves.
 - `config/users.json` (password hashes) and `config/session-secret.key` (cookie signing key) must never be committed or exposed — treat them like any other credential file.
 - The vault default key (`vault/.mabu-default-key`) is equally sensitive — anyone with that file and your `.mabu` files (not passphrase-protected) can decrypt them.
 - For anything especially sensitive, use a per-case passphrase instead of relying on the default key.

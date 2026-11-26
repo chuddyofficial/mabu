@@ -1,52 +1,80 @@
-:root {
-  /* ---- surface hierarchy ---- */
-  --mabu-bg: #030905;
-  --mabu-surface: #050f08;
-  --mabu-surface-alt: #08160c;
-  --mabu-surface-raised: #0b1c10;
-  --mabu-panel: var(--mabu-surface);
-  --mabu-panel-alt: var(--mabu-surface-alt);
-  --mabu-input-bg: #010601;
+/* ==========================================================================
+   MABU — Intelligence Research Platform
+   Design system + component styles.
 
-  /* ---- borders ---- */
-  --mabu-border: #144d24;
-  --mabu-border-light: #1f7a38;
-  --mabu-border-strong: #2e9e4f;
+   Fonts are self-hosted (assets/fonts, SIL OFL) so they load under the
+   deployment's `default-src 'self'` Content-Security-Policy.
+   ========================================================================== */
+
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url("../assets/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500; font-display: swap; src: url("../assets/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600; font-display: swap; src: url("../assets/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("../assets/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("../assets/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); }
+
+:root {
+  /* ---- surfaces ---- */
+  --mabu-bg: #0A111B;
+  --mabu-bg-elev: #0D1622;
+  --mabu-surface: #111B29;
+  --mabu-surface-2: #142132;
+  --mabu-surface-3: #1A2A3F;
+  --mabu-input-bg: #0C1520;
+
+  /* ---- lines ---- */
+  --mabu-border: #1E2D42;
+  --mabu-border-strong: #2A3D57;
+  --mabu-border-focus: #4D8DF7;
 
   /* ---- text ---- */
-  --mabu-text: #baffc9;
-  --mabu-text-dim: #6fbf8a;
-  --mabu-text-faint: #3f7a54;
+  --mabu-text: #E4EAF2;
+  --mabu-text-2: #A7B4C6;
+  --mabu-text-3: #6E7F98;
 
-  /* ---- brand / accent ---- */
-  --mabu-green: #00ff66;
-  --mabu-green-bright: #5dffa0;
-  --mabu-green-dim: #0e5c28;
-  --mabu-accent: var(--mabu-green);
+  /* ---- brand + semantic ---- */
+  --mabu-primary: #4D8DF7;
+  --mabu-primary-hover: #6AA2FF;
+  --mabu-primary-press: #3B78E2;
+  --mabu-primary-soft: rgba(77, 141, 247, 0.14);
+  --mabu-gold: #C8A24A;
+  --mabu-gold-soft: rgba(200, 162, 74, 0.12);
+  --mabu-success: #3DBE8B;
+  --mabu-success-soft: rgba(61, 190, 139, 0.12);
+  --mabu-warning: #E5A93B;
+  --mabu-warning-soft: rgba(229, 169, 59, 0.12);
+  --mabu-danger: #E5534B;
+  --mabu-danger-soft: rgba(229, 83, 75, 0.12);
+  --mabu-info: var(--mabu-primary);
+  --mabu-info-soft: var(--mabu-primary-soft);
 
-  /* ---- semantic ---- */
-  --mabu-amber: #ffb000;
-  --mabu-warning: var(--mabu-amber);
-  --mabu-red: #ff3b5c;
-  --mabu-danger: var(--mabu-red);
-  --mabu-cyan: #35fff0;
-  --mabu-info: var(--mabu-cyan);
-  --mabu-success: var(--mabu-green);
+  /* Aliases kept for colors the JS sets inline (status messages). */
+  --mabu-green: var(--mabu-success);
+  --mabu-red: var(--mabu-danger);
+  --mabu-amber: var(--mabu-warning);
+  --mabu-cyan: var(--mabu-primary);
+  --mabu-text-dim: var(--mabu-text-2);
+  --mabu-text-faint: var(--mabu-text-3);
 
-  --mabu-warning-bg: rgba(255, 176, 0, 0.08);
-  --mabu-danger-bg: rgba(255, 59, 92, 0.08);
-  --mabu-info-bg: rgba(53, 255, 240, 0.08);
-  --mabu-success-bg: rgba(0, 255, 102, 0.08);
+  /* ---- type ---- */
+  --mabu-font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mabu-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --mabu-text-xs: 11px;
+  --mabu-text-sm: 12.5px;
+  --mabu-text-base: 14px;
+  --mabu-text-md: 15px;
+  --mabu-text-lg: 18px;
+  --mabu-text-xl: 22px;
 
-  --mabu-gradient: linear-gradient(135deg, #00ff66 0%, #00c2a8 100%);
-
-  /* ---- radius scale ---- */
-  --mabu-radius-sm: 2px;
-  --mabu-radius: 4px;
-  --mabu-radius-lg: 8px;
+  /* ---- shape ---- */
+  --mabu-radius-sm: 4px;
+  --mabu-radius: 6px;
+  --mabu-radius-lg: 10px;
   --mabu-radius-pill: 999px;
+  --mabu-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --mabu-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 6px 20px rgba(0, 0, 0, 0.28);
+  --mabu-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
 
-  /* ---- spacing scale ---- */
+  /* ---- spacing ---- */
   --mabu-space-1: 4px;
   --mabu-space-2: 8px;
   --mabu-space-3: 12px;
@@ -54,63 +82,1627 @@
   --mabu-space-5: 20px;
   --mabu-space-6: 24px;
   --mabu-space-8: 32px;
-  --mabu-space-10: 40px;
 
-  /* ---- typography scale ---- */
-  --mabu-font-mono: "Cascadia Code", "Consolas", "Courier New", monospace;
-  --mabu-text-xs: 10.5px;
-  --mabu-text-sm: 12px;
-  --mabu-text-base: 13.5px;
-  --mabu-text-md: 15px;
-  --mabu-text-lg: 18px;
-  --mabu-text-xl: 22px;
-
-  /* ---- elevation / glow ---- */
-  --mabu-shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
-  --mabu-shadow: 0 0 24px rgba(0, 255, 102, 0.08), 0 8px 24px rgba(0,0,0,0.6);
-  --mabu-shadow-lg: 0 0 32px rgba(0, 255, 102, 0.1), 0 16px 40px rgba(0,0,0,0.65);
-  --mabu-glow-sm: 0 0 4px rgba(0, 255, 102, 0.4);
-  --mabu-glow: 0 0 6px rgba(0, 255, 102, 0.55);
-  --mabu-glow-lg: 0 0 14px rgba(0, 255, 102, 0.6);
+  /* ---- layout ---- */
+  --mabu-sidebar-w: 252px;
+  --mabu-banner-h: 26px;
 
   /* ---- motion ---- */
-  --mabu-duration-fast: 0.12s;
-  --mabu-duration: 0.15s;
-  --mabu-duration-slow: 0.3s;
-  --mabu-ease: ease;
+  --mabu-ease: cubic-bezier(0.2, 0, 0, 1);
+  --mabu-fast: 120ms;
+  --mabu-med: 200ms;
 
   /* ---- z-index scale ---- */
-  --mabu-z-graph: 1;
-  --mabu-z-dropdown: 20;
-  --mabu-z-sidebar: 30;
-  --mabu-z-topbar: 40;
+  --mabu-z-sticky: 20;
   --mabu-z-toast: 9000;
   --mabu-z-command-palette: 9500;
   --mabu-z-modal: 9600;
-  --mabu-z-rain: 9996;
-  --mabu-z-noise: 9997;
-  --mabu-z-scanlines: 9998;
-  --mabu-z-login: 9999;
+  --mabu-z-login: 9800;
   --mabu-z-boot: 10000;
 
-  /* ---- breakpoints (referenced in comments; media queries can't read vars) ---- */
-  --mabu-bp-tablet: 900px;
-  --mabu-bp-narrow: 640px;
+  color-scheme: dark;
 }
 
-* { box-sizing: border-box; }
+/* ==========================================================================
+   Base
+   ========================================================================== */
 
-/* ---------------- Reduced effects ----------------
-   Toggled by JS via .mabu-reduced-fx on <html> (Settings panel), and also
-   applied automatically when the OS/browser prefers-reduced-motion is set,
-   so a user's system preference is respected even before they visit
-   Settings. Kills perpetual animations and dials back the CRT overlay
-   without touching layout or color. */
-.mabu-reduced-fx .mabu-scanlines,
-.mabu-reduced-fx .mabu-noise,
-.mabu-reduced-fx .mabu-rain {
-  display: none;
+*, *::before, *::after { box-sizing: border-box; }
+
+/* The JS shows/hides panels with the `hidden` attribute; never let a
+   component's own `display` override it. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
+
+body {
+  background: var(--mabu-bg);
+  color: var(--mabu-text);
+  font-family: var(--mabu-font-sans);
+  font-size: var(--mabu-text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.005em; }
+p { margin: 0 0 var(--mabu-space-3) 0; }
+a { color: var(--mabu-primary); text-decoration: none; }
+a:hover { color: var(--mabu-primary-hover); text-decoration: underline; }
+code, pre, kbd { font-family: var(--mabu-font-mono); }
+b, strong { font-weight: 600; }
+
+::selection { background: rgba(77, 141, 247, 0.35); color: #fff; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--mabu-border-strong); border-radius: 10px; border: 2px solid var(--mabu-bg); }
+::-webkit-scrollbar-thumb:hover { background: #3A5272; }
+
+:focus-visible { outline: 2px solid var(--mabu-primary); outline-offset: 2px; }
+
+.mabu-ico {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+
+.mabu-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 10001;
+  background: var(--mabu-primary);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: var(--mabu-radius);
+  font-weight: 500;
+}
+.mabu-skip-link:focus { left: 8px; }
+
+kbd {
+  display: inline-block;
+  font-size: 10.5px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: var(--mabu-radius-sm);
+  border: 1px solid var(--mabu-border-strong);
+  border-bottom-width: 2px;
+  background: var(--mabu-surface-2);
+  color: var(--mabu-text-2);
+}
+
+/* ==========================================================================
+   Access banner (top of shell + login)
+   ========================================================================== */
+
+.mabu-banner {
+  height: var(--mabu-banner-h);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #0B1420;
+  border-bottom: 1px solid var(--mabu-border);
+  color: var(--mabu-gold);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.mabu-banner .mabu-banner-sep { color: var(--mabu-text-3); font-weight: 400; }
+.mabu-banner .mabu-ico { width: 12px; height: 12px; }
+
+/* ==========================================================================
+   Boot (startup) screen
+   ========================================================================== */
+
+.mabu-boot {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mabu-z-boot);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(900px 500px at 50% 35%, rgba(77, 141, 247, 0.08), transparent 70%),
+    var(--mabu-bg);
+}
+.mabu-boot[hidden] { display: none; }
+
+.mabu-boot-inner {
+  width: min(420px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.mabu-boot-mark { width: 72px; height: 72px; margin-bottom: 18px; }
+.mabu-boot-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  margin-right: -0.32em;
+}
+.mabu-boot-sub {
+  margin: 6px 0 26px 0;
+  color: var(--mabu-gold);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.mabu-boot-log {
+  list-style: none;
+  margin: 0 0 18px 0;
+  padding: 0;
+  width: 100%;
+  min-height: 132px;
+  text-align: left;
+}
+.mabu-boot-log li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  color: var(--mabu-text-2);
+  font-size: var(--mabu-text-sm);
+  animation: mabuFadeUp var(--mabu-med) var(--mabu-ease) both;
+}
+.mabu-boot-log li .mabu-ico { color: var(--mabu-success); }
+.mabu-boot-log li .mabu-boot-step-status {
+  margin-left: auto;
+  font-family: var(--mabu-font-mono);
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-3);
+}
+
+.mabu-boot-bar {
+  width: 100%;
+  height: 2px;
+  background: var(--mabu-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.mabu-boot-bar-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--mabu-primary), var(--mabu-gold));
+  transition: width 160ms var(--mabu-ease);
+}
+.mabu-boot-skip {
+  margin-top: 22px;
+  background: none;
+  border: none;
+  color: var(--mabu-text-3);
+  font: inherit;
+  font-size: var(--mabu-text-xs);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.mabu-boot-skip:hover { color: var(--mabu-text-2); text-decoration: underline; }
+
+@keyframes mabuFadeUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ==========================================================================
+   Login
+   ========================================================================== */
+
+.mabu-login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mabu-z-login);
+  display: flex;
+  flex-direction: column;
+  background: var(--mabu-bg);
+  overflow-y: auto;
+}
+.mabu-login-screen[hidden] { display: none; }
+
+.mabu-login-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.mabu-login-aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 56px;
+  border-right: 1px solid var(--mabu-border);
+  background:
+    linear-gradient(180deg, rgba(10, 17, 27, 0) 0%, rgba(10, 17, 27, 0.85) 100%),
+    radial-gradient(700px 420px at 20% 10%, rgba(77, 141, 247, 0.10), transparent 70%),
+    var(--mabu-bg-elev);
+  overflow: hidden;
+}
+.mabu-login-aside::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(143, 166, 196, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 166, 196, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+  pointer-events: none;
+}
+.mabu-login-aside > * { position: relative; }
+
+.mabu-login-brand { display: flex; align-items: center; gap: 14px; }
+.mabu-login-brand img { width: 48px; height: 48px; }
+.mabu-login-brand-name { font-size: 19px; font-weight: 600; letter-spacing: 0.3em; }
+.mabu-login-brand-sub {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--mabu-gold);
+}
+
+.mabu-login-pitch { max-width: 470px; padding: 40px 0; }
+.mabu-login-pitch h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin-bottom: 14px;
+}
+.mabu-login-pitch p { color: var(--mabu-text-2); font-size: var(--mabu-text-md); margin-bottom: 28px; }
+
+.mabu-login-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.mabu-login-points li { display: flex; gap: 12px; align-items: flex-start; color: var(--mabu-text-2); font-size: var(--mabu-text-sm); }
+.mabu-login-points li b { display: block; color: var(--mabu-text); font-weight: 500; font-size: var(--mabu-text-base); margin-bottom: 1px; }
+.mabu-login-points .mabu-ico-wrap {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-surface-2);
+  border: 1px solid var(--mabu-border);
+  color: var(--mabu-gold);
+}
+
+.mabu-login-legal { font-size: var(--mabu-text-xs); color: var(--mabu-text-3); line-height: 1.6; max-width: 470px; }
+
+.mabu-login-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+}
+
+.mabu-login-box { width: 100%; max-width: 380px; }
+.mabu-login-box h2 { font-size: var(--mabu-text-xl); font-weight: 600; margin-bottom: 6px; }
+.mabu-login-sub { color: var(--mabu-text-2); margin: 0 0 28px 0; }
+.mabu-login-box .mabu-btn { width: 100%; height: 42px; margin-top: 6px; }
+.mabu-login-error { color: var(--mabu-danger); font-size: var(--mabu-text-sm); min-height: 20px; margin: 12px 0 0 0; }
+.mabu-login-setup-hint {
+  display: flex;
+  gap: 10px;
+  color: var(--mabu-text);
+  font-size: var(--mabu-text-sm);
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-warning-soft);
+  border: 1px solid rgba(229, 169, 59, 0.35);
+}
+.mabu-login-setup-hint .mabu-ico { color: var(--mabu-warning); margin-top: 2px; }
+.mabu-login-setup-hint code { color: var(--mabu-warning); }
+.mabu-login-foot {
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid var(--mabu-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mabu-text-3);
+  font-size: var(--mabu-text-xs);
+}
+
+/* ==========================================================================
+   App shell
+   ========================================================================== */
+
+.mabu-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.mabu-shell[hidden] { display: none; }
+
+.mabu-shell-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---- Sidebar ---- */
+.mabu-sidebar {
+  width: var(--mabu-sidebar-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--mabu-bg-elev);
+  border-right: 1px solid var(--mabu-border);
+  min-height: 0;
+}
+
+.mabu-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 18px 16px 18px;
+  border-bottom: 1px solid var(--mabu-border);
+}
+.mabu-logo { width: 34px; height: 34px; flex-shrink: 0; }
+.mabu-logo img { width: 100%; height: 100%; display: block; }
+.mabu-brand-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.mabu-brand-name { font-size: 15px; font-weight: 600; letter-spacing: 0.28em; }
+.mabu-brand-sub {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mabu-gold);
+  white-space: nowrap;
+}
+
+.mabu-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 10px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.mabu-nav-group {
+  padding: 16px 10px 6px 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mabu-text-3);
+}
+.mabu-nav-group:first-child { padding-top: 6px; }
+.mabu-nav-group[hidden] { display: none; }
+
+.mabu-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--mabu-radius);
+  background: transparent;
+  color: var(--mabu-text-2);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--mabu-fast) var(--mabu-ease), color var(--mabu-fast) var(--mabu-ease);
+}
+.mabu-nav-item[hidden] { display: none; }
+.mabu-nav-item:hover { background: var(--mabu-surface-2); color: var(--mabu-text); }
+.mabu-nav-item.active { background: var(--mabu-primary-soft); color: var(--mabu-text); font-weight: 500; }
+.mabu-nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--mabu-primary);
+}
+.mabu-nav-icon { display: inline-flex; color: var(--mabu-text-3); }
+.mabu-nav-item:hover .mabu-nav-icon { color: var(--mabu-text-2); }
+.mabu-nav-item.active .mabu-nav-icon { color: var(--mabu-primary); }
+
+.mabu-sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--mabu-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mabu-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-surface);
+  border: 1px solid var(--mabu-border);
+}
+.mabu-avatar {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #24395A, #182740);
+  border: 1px solid var(--mabu-border-strong);
+  color: var(--mabu-text);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.mabu-user-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.mabu-user-name { font-size: var(--mabu-text-sm); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mabu-user-role { font-size: var(--mabu-text-xs); color: var(--mabu-text-3); text-transform: capitalize; }
+
+.mabu-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-3);
+  padding: 0 4px;
+}
+.mabu-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mabu-text-3);
+  flex-shrink: 0;
+}
+.mabu-status-dot.online { background: var(--mabu-success); box-shadow: 0 0 0 3px var(--mabu-success-soft); }
+.mabu-status-dot.offline { background: var(--mabu-danger); box-shadow: 0 0 0 3px var(--mabu-danger-soft); }
+.mabu-status > span { white-space: nowrap; }
+.mabu-clock { margin-left: auto; font-family: var(--mabu-font-mono); font-size: 10.5px; color: var(--mabu-text-3); }
+.mabu-version { font-size: 10.5px; color: var(--mabu-text-3); padding: 0 4px; letter-spacing: 0.02em; }
+
+/* ---- Main ---- */
+.mabu-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.mabu-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--mabu-z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 32px;
+  background: rgba(10, 17, 27, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--mabu-border);
+}
+.mabu-topbar-title { min-width: 0; }
+.mabu-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--mabu-text-xs);
+  color: var(--mabu-text-3);
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.mabu-crumb-sep { opacity: 0.6; }
+.mabu-topbar h1 { font-size: var(--mabu-text-lg); font-weight: 600; }
+.mabu-page-desc {
+  margin: 2px 0 0 0;
+  font-size: var(--mabu-text-sm);
+  color: var(--mabu-text-2);
+  max-width: 720px;
+}
+.mabu-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.mabu-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  min-width: 250px;
+  padding: 0 8px 0 10px;
+  border-radius: var(--mabu-radius);
+  border: 1px solid var(--mabu-border);
+  background: var(--mabu-surface);
+  color: var(--mabu-text-3);
+  font: inherit;
+  font-size: var(--mabu-text-sm);
+  cursor: pointer;
+  transition: border-color var(--mabu-fast), color var(--mabu-fast);
+}
+.mabu-search-btn:hover { border-color: var(--mabu-border-strong); color: var(--mabu-text-2); }
+.mabu-search-btn kbd { margin-left: auto; }
+
+.mabu-icon-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: var(--mabu-radius);
+  border: 1px solid var(--mabu-border);
+  background: var(--mabu-surface);
+  color: var(--mabu-text-2);
+  font: inherit;
+  font-size: var(--mabu-text-sm);
+  cursor: pointer;
+  transition: background var(--mabu-fast), border-color var(--mabu-fast), color var(--mabu-fast);
+}
+.mabu-icon-btn:hover { background: var(--mabu-surface-2); border-color: var(--mabu-border-strong); color: var(--mabu-text); }
+.mabu-icon-btn-wide { width: auto; padding: 0 12px; }
+.mabu-badge-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--mabu-radius-pill);
+  background: var(--mabu-danger);
+  border: 2px solid var(--mabu-bg);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.mabu-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1360px;
+  padding: 28px 32px 56px 32px;
+}
+
+.mabu-view { display: none; }
+.mabu-view.active { display: block; animation: mabuFadeUp var(--mabu-med) var(--mabu-ease); }
+
+/* ==========================================================================
+   Layout helpers
+   ========================================================================== */
+
+.mabu-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.mabu-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mabu-grid-span-2 { grid-column: span 2; }
+.mabu-grid-span-all { grid-column: 1 / -1; }
+.mabu-grid[hidden] { display: none; }
+.mabu-stack > * + * { margin-top: 18px; }
+
+/* ==========================================================================
+   Cards / panels
+   ========================================================================== */
+
+.mabu-card {
+  position: relative;
+  background: var(--mabu-surface);
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius-lg);
+  padding: 20px 22px 22px 22px;
+  box-shadow: var(--mabu-shadow);
+  min-width: 0;
+  scroll-margin-top: 120px;
+}
+.mabu-card[hidden] { display: none; }
+
+.mabu-card > h3,
+.mabu-card-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mabu-text-2);
+  margin-bottom: 14px;
+}
+.mabu-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.mabu-card-head h3 { margin-bottom: 0; }
+.mabu-card-head .mabu-actions { margin: 0; }
+
+.mabu-card-accent { border-left: 3px solid var(--mabu-gold); }
+
+.mabu-card-lead { color: var(--mabu-text-2); margin-bottom: 16px; }
+
+.mabu-note {
+  color: var(--mabu-text-2);
+  font-size: var(--mabu-text-sm);
+  line-height: 1.55;
+  margin: 0 0 14px 0;
+}
+td.mabu-note { margin: 0; }
+
+.mabu-notice {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-gold-soft);
+  border: 1px solid rgba(200, 162, 74, 0.28);
+  color: var(--mabu-text);
+  font-size: var(--mabu-text-sm);
+  line-height: 1.55;
+}
+.mabu-notice .mabu-ico { color: var(--mabu-gold); margin-top: 2px; }
+
+.mabu-subhead {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mabu-text-3);
+  margin: 18px 0 10px 0;
+}
+.mabu-subhead:first-child { margin-top: 0; }
+
+/* ---- Overview: KPI tiles ---- */
+.mabu-stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.mabu-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-surface-2);
+  border: 1px solid var(--mabu-border);
+}
+.mabu-stat-num { font-size: 26px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.mabu-stat-label { font-size: var(--mabu-text-xs); color: var(--mabu-text-3); letter-spacing: 0.06em; text-transform: uppercase; }
+
+.mabu-quick-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.mabu-quick-actions > .mabu-btn,
+.mabu-quick-actions > .mabu-btn-secondary { justify-content: flex-start; }
+
+/* ---- Overview: capability tiles ---- */
+.mabu-module-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mabu-module {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: var(--mabu-radius);
+  border: 1px solid var(--mabu-border);
+  background: var(--mabu-bg-elev);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--mabu-fast), background var(--mabu-fast);
+}
+.mabu-module:hover { border-color: var(--mabu-border-strong); background: var(--mabu-surface-2); }
+.mabu-module-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-primary-soft);
+  color: var(--mabu-primary);
+}
+.mabu-module-title { font-weight: 500; font-size: 13.5px; margin-bottom: 2px; }
+.mabu-module-desc { font-size: 12px; color: var(--mabu-text-3); line-height: 1.45; }
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+
+.mabu-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; min-width: 0; }
+.mabu-field label,
+.mabu-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--mabu-text-2);
+}
+.mabu-field-hint { font-size: var(--mabu-text-xs); color: var(--mabu-text-3); }
+
+input[type="text"],
+input[type="password"],
+input[type="search"],
+input:not([type]),
+select,
+textarea {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 11px;
+  border-radius: var(--mabu-radius);
+  border: 1px solid var(--mabu-border-strong);
+  background: var(--mabu-input-bg);
+  color: var(--mabu-text);
+  font: inherit;
+  font-size: 13.5px;
+  transition: border-color var(--mabu-fast), box-shadow var(--mabu-fast), background var(--mabu-fast);
+}
+textarea { height: auto; padding: 9px 11px; line-height: 1.5; resize: vertical; }
+textarea[readonly] { background: var(--mabu-bg-elev); color: var(--mabu-text-2); }
+input::placeholder, textarea::placeholder { color: #55677F; }
+input:hover, select:hover, textarea:hover { border-color: #3A5272; }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--mabu-border-focus);
+  box-shadow: 0 0 0 3px rgba(77, 141, 247, 0.22);
+}
+select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A7B4C6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+}
+select option { background: var(--mabu-surface); color: var(--mabu-text); }
+
+input[type="checkbox"] { accent-color: var(--mabu-primary); width: 15px; height: 15px; }
+
+input[type="file"] {
+  width: 100%;
+  padding: 6px;
+  border-radius: var(--mabu-radius);
+  border: 1px dashed var(--mabu-border-strong);
+  background: var(--mabu-input-bg);
+  color: var(--mabu-text-2);
+  font: inherit;
+  font-size: var(--mabu-text-sm);
+}
+input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--mabu-radius-sm);
+  border: 1px solid var(--mabu-border-strong);
+  background: var(--mabu-surface-2);
+  color: var(--mabu-text);
+  font: inherit;
+  font-size: var(--mabu-text-sm);
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover { background: var(--mabu-surface-3); }
+
+.mabu-field-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.mabu-field-row > input, .mabu-field-row > select { flex: 1; }
+.mabu-field-row > .mabu-btn, .mabu-field-row > .mabu-btn-secondary { flex-shrink: 0; }
+
+.mabu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mabu-actions[hidden] { display: none; }
+.mabu-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--mabu-text-sm);
+  color: var(--mabu-text-2);
+  cursor: pointer;
+}
+
+.mabu-save-status { font-size: var(--mabu-text-sm); color: var(--mabu-text-2); }
+
+.mabu-form-section + .mabu-form-section { margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--mabu-border); }
+
+/* ---- Switch ---- */
+.mabu-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; cursor: pointer; }
+.mabu-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.mabu-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--mabu-radius-pill);
+  background: var(--mabu-surface-3);
+  border: 1px solid var(--mabu-border-strong);
+  transition: background var(--mabu-fast), border-color var(--mabu-fast);
+}
+.mabu-switch-track::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mabu-text-2);
+  transition: transform var(--mabu-med) var(--mabu-ease), background var(--mabu-fast);
+}
+.mabu-switch input:checked + .mabu-switch-track { background: var(--mabu-primary); border-color: var(--mabu-primary); }
+.mabu-switch input:checked + .mabu-switch-track::before { transform: translateX(16px); background: #fff; }
+.mabu-switch input:focus-visible + .mabu-switch-track { outline: 2px solid var(--mabu-primary); outline-offset: 2px; }
+
+.mabu-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--mabu-border);
+}
+.mabu-settings-row:last-child { border-bottom: none; padding-bottom: 0; }
+.mabu-settings-label { font-weight: 500; }
+.mabu-settings-desc { font-size: var(--mabu-text-sm); color: var(--mabu-text-3); margin-top: 2px; }
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.mabu-btn,
+.mabu-btn-secondary,
+.mabu-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--mabu-radius);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--mabu-fast) var(--mabu-ease), border-color var(--mabu-fast), color var(--mabu-fast), box-shadow var(--mabu-fast);
+}
+
+.mabu-btn {
+  background: var(--mabu-primary);
+  border-color: var(--mabu-primary);
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, var(--mabu-shadow-sm);
+}
+.mabu-btn:hover { background: var(--mabu-primary-hover); border-color: var(--mabu-primary-hover); }
+.mabu-btn:active { background: var(--mabu-primary-press); border-color: var(--mabu-primary-press); }
+
+.mabu-btn.mabu-btn-secondary,
+.mabu-btn-secondary {
+  background: var(--mabu-surface-2);
+  border-color: var(--mabu-border-strong);
+  color: var(--mabu-text);
+  box-shadow: none;
+}
+.mabu-btn.mabu-btn-secondary:hover,
+.mabu-btn-secondary:hover { background: var(--mabu-surface-3); border-color: #3A5272; }
+
+.mabu-btn-danger {
+  background: transparent;
+  border-color: rgba(229, 83, 75, 0.45);
+  color: #F08A84;
+}
+.mabu-btn-danger:hover { background: var(--mabu-danger-soft); border-color: var(--mabu-danger); color: #FFB1AC; }
+.mabu-btn-danger.mabu-btn-solid,
+.mabu-modal-danger #mabuModalConfirm { background: var(--mabu-danger); border-color: var(--mabu-danger); color: #fff; }
+
+.mabu-btn:disabled,
+.mabu-btn-secondary:disabled,
+.mabu-btn-danger:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.mabu-btn .mabu-ico, .mabu-btn-secondary .mabu-ico, .mabu-btn-danger .mabu-ico { width: 15px; height: 15px; }
+
+/* Compact buttons inside tables, chips and result rows. */
+.mabu-table .mabu-btn,
+.mabu-table .mabu-btn-secondary,
+.mabu-table .mabu-btn-danger,
+.mabu-kv .mabu-btn,
+.mabu-kv .mabu-btn-secondary,
+.mabu-btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+.mabu-table td .mabu-btn + .mabu-btn,
+.mabu-table td .mabu-btn + .mabu-btn-danger,
+.mabu-table td .mabu-btn-secondary + .mabu-btn-danger { margin-left: 4px; }
+
+/* ==========================================================================
+   Data display
+   ========================================================================== */
+
+.mabu-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--mabu-border);
+  font-size: 13.5px;
+}
+.mabu-kv:last-child { border-bottom: none; }
+.mabu-kv > span { color: var(--mabu-text-3); flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px; }
+.mabu-kv > b {
+  font-weight: 500;
+  color: var(--mabu-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.mabu-kv > b .mabu-tag { font-family: var(--mabu-font-sans); }
+
+.mabu-result-box {
+  margin-top: 16px;
+  padding: 4px 16px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-bg-elev);
+  border: 1px solid var(--mabu-border);
+}
+.mabu-result-box[hidden] { display: none; }
+.mabu-result-box > .mabu-note:last-child { margin-bottom: 12px; }
+.mabu-result-box > .mabu-note:first-child { margin-top: 12px; }
+
+.mabu-mono-out { font-family: var(--mabu-font-mono); word-break: break-all; }
+.mabu-mono { font-family: var(--mabu-font-mono); font-size: 12px; }
+.mabu-num { font-variant-numeric: tabular-nums; }
+
+/* Tool output reads best in mono; prose (entries, overview) stays in sans. */
+.mabu-kv > b { font-family: var(--mabu-font-sans); font-size: 13.5px; }
+.mabu-result-box .mabu-kv > b,
+.mabu-graph-panel .mabu-kv > b { font-family: var(--mabu-font-mono); font-size: 12.5px; }
+
+.mabu-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  margin-left: 6px;
+  border-radius: var(--mabu-radius-pill);
+  background: var(--mabu-surface-3);
+  color: var(--mabu-text-2);
+  font-size: 10.5px;
+  letter-spacing: 0;
+  vertical-align: 1px;
+}
+
+.mabu-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--mabu-radius-pill);
+  font-family: var(--mabu-font-sans);
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--mabu-surface-3);
+  color: var(--mabu-text-2);
+  vertical-align: middle;
+}
+.mabu-status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.mabu-status-badge[data-status="open"],
+.mabu-status-badge[data-status="active"] { background: var(--mabu-success-soft); color: #7BDCB3; }
+.mabu-status-badge[data-status="cold"] { background: var(--mabu-primary-soft); color: #8FB6FA; }
+.mabu-status-badge[data-status="closed"],
+.mabu-status-badge[data-status="inactive"] { background: var(--mabu-surface-3); color: var(--mabu-text-3); }
+.mabu-timeline-date .mabu-status-badge { margin-left: 8px; height: 19px; font-size: 10.5px; }
+
+.mabu-cell-title { font-weight: 500; color: var(--mabu-text); display: inline-flex; align-items: center; gap: 6px; }
+.mabu-cell-title .mabu-ico { width: 13px; height: 13px; color: var(--mabu-gold); }
+.mabu-cell-sub { font-family: var(--mabu-font-mono); font-size: 11px; color: var(--mabu-text-3); margin-top: 2px; }
+.mabu-you {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--mabu-radius-sm);
+  background: var(--mabu-gold-soft);
+  color: var(--mabu-gold);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* ---- Case entries ---- */
+.mabu-entry {
+  padding: 4px 16px 8px 16px;
+  margin-bottom: 12px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-bg-elev);
+  border: 1px solid var(--mabu-border);
+}
+.mabu-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mabu-border);
+}
+.mabu-entry-date { font-family: var(--mabu-font-mono); font-size: 12px; color: var(--mabu-text-2); }
+.mabu-entry-author { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--mabu-text-2); }
+.mabu-entry-author .mabu-ico { width: 14px; height: 14px; color: var(--mabu-text-3); }
+.mabu-entry .mabu-kv { flex-direction: column; align-items: stretch; gap: 4px; }
+.mabu-entry .mabu-kv > span { font-size: 12px; }
+.mabu-entry .mabu-kv > b { text-align: left; white-space: pre-wrap; font-weight: 400; line-height: 1.55; }
+.mabu-reader-output .mabu-entry { margin-top: 8px; }
+
+.mabu-graph-svg text.mabu-graph-empty { fill: var(--mabu-text-3); font-size: 13px; }
+
+.mabu-table td .mabu-btn-danger:only-child,
+.mabu-table td .mabu-btn-danger .mabu-ico:only-child { margin: 0; }
+.mabu-table .mabu-btn-danger:has(> .mabu-ico:only-child) { width: 28px; padding: 0; }
+
+.mabu-code {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-bg-elev);
+  border: 1px solid var(--mabu-border);
+  color: #C9D6E8;
+  font-family: var(--mabu-font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.mabu-result-box .mabu-code { border: none; padding: 12px 0; background: transparent; }
+
+/* ---- Tables ---- */
+.mabu-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  margin-top: 14px;
+}
+.mabu-table-wrap:has(> .mabu-table[hidden]) { display: none; }
+.mabu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mabu-table[hidden] { display: none; }
+.mabu-table th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  padding: 9px 14px;
+  background: var(--mabu-bg-elev);
+  border-bottom: 1px solid var(--mabu-border);
+  color: var(--mabu-text-3);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mabu-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mabu-border);
+  color: var(--mabu-text);
+  vertical-align: middle;
+}
+.mabu-table tbody tr:last-child td { border-bottom: none; }
+.mabu-table tbody tr:hover td { background: rgba(77, 141, 247, 0.04); }
+.mabu-table td:last-child:has(button) { white-space: nowrap; text-align: right; }
+.mabu-table td.mabu-mono { white-space: nowrap; }
+.mabu-table a { color: var(--mabu-primary); word-break: break-all; }
+.mabu-table td.mabu-note { padding: 18px 14px; color: var(--mabu-text-3); text-align: left; }
+/* Outside a wrapper (generated tables), keep the frame. */
+.mabu-card > .mabu-table, .mabu-tab-panel > .mabu-table, div > .mabu-table:not(.mabu-table-wrap > .mabu-table) {
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+/* ---- Tags, pills, provenance ---- */
+.mabu-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  margin: 2px 4px 2px 0;
+  border-radius: var(--mabu-radius-sm);
+  background: var(--mabu-surface-3);
+  border: 1px solid var(--mabu-border-strong);
+  color: var(--mabu-text-2);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.mabu-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--mabu-radius-pill);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--mabu-border-strong);
+  background: var(--mabu-surface-2);
+  color: var(--mabu-text-2);
+}
+.mabu-pill:focus-visible { outline: 2px solid var(--mabu-primary); outline-offset: 2px; }
+.mabu-pill[data-status="confirmed"] { background: var(--mabu-success-soft); border-color: rgba(61, 190, 139, 0.4); color: #7BDCB3; }
+.mabu-pill[data-status="not_found"] { background: var(--mabu-danger-soft); border-color: rgba(229, 83, 75, 0.4); color: #F08A84; }
+
+.mabu-provenance {
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  padding: 0 7px;
+  border-radius: var(--mabu-radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.mabu-provenance[data-kind="source"] { color: #8FB6FA; border-color: rgba(77, 141, 247, 0.4); background: var(--mabu-primary-soft); }
+.mabu-provenance[data-kind="analyst"] { color: #D9BE7C; border-color: rgba(200, 162, 74, 0.4); background: var(--mabu-gold-soft); }
+.mabu-provenance[data-kind="observed"] { color: #7BDCB3; border-color: rgba(61, 190, 139, 0.4); background: var(--mabu-success-soft); }
+.mabu-provenance[data-kind="inference"],
+.mabu-provenance[data-kind="correlation"] { color: #F0C477; border-color: rgba(229, 169, 59, 0.4); background: var(--mabu-warning-soft); }
+.mabu-card-head .mabu-provenance { letter-spacing: 0.06em; }
+
+/* ---- Lists ---- */
+.mabu-list { margin: 0; padding-left: 18px; color: var(--mabu-text-2); }
+.mabu-list li { margin: 4px 0; }
+.mabu-list strong { color: var(--mabu-text); }
+
+/* ---- Identifier chips ---- */
+.mabu-chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.mabu-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  border-radius: var(--mabu-radius);
+  border: 1px solid var(--mabu-border-strong);
+  background: var(--mabu-bg-elev);
+  overflow: hidden;
+  font-size: 12.5px;
+}
+.mabu-chip-type {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  background: var(--mabu-surface-3);
+  color: var(--mabu-text-3);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.mabu-chip-value { padding: 0 10px; font-family: var(--mabu-font-mono); color: var(--mabu-text); }
+.mabu-chip-btn {
+  height: 100%;
+  width: 30px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-left: 1px solid var(--mabu-border);
+  background: transparent;
+  color: var(--mabu-text-3);
+  cursor: pointer;
+}
+.mabu-chip-btn:hover { color: var(--mabu-text); background: var(--mabu-surface-2); }
+.mabu-chip-btn .mabu-ico { width: 14px; height: 14px; }
+
+/* ---- Potential-connection cards ---- */
+.mabu-connection-card {
+  padding: 14px 16px;
+  margin: 12px 0;
+  border-radius: var(--mabu-radius);
+  background: rgba(229, 169, 59, 0.06);
+  border: 1px solid rgba(229, 169, 59, 0.22);
+  border-left: 3px solid var(--mabu-warning);
+}
+.mabu-connection-card[hidden] { display: none; }
+.mabu-connection-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #F0C477;
+  margin-bottom: 6px;
+}
+.mabu-connection-evidence { font-size: 13px; color: var(--mabu-text); line-height: 1.7; }
+.mabu-connection-evidence .mabu-note { display: inline; margin: 0; font-size: 12px; }
+.mabu-connection-assessment {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--mabu-text-2);
+}
+.mabu-connection-card .mabu-kv { border-bottom-color: rgba(229, 169, 59, 0.18); }
+
+/* ---- Empty / loading ---- */
+.mabu-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--mabu-text-2);
+}
+.mabu-empty-state-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--mabu-surface-2);
+  border: 1px solid var(--mabu-border);
+  color: var(--mabu-text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+.mabu-empty-state-icon .mabu-ico { width: 18px; height: 18px; }
+.mabu-empty-state h4 { font-size: var(--mabu-text-md); font-weight: 500; color: var(--mabu-text); margin-bottom: 4px; }
+.mabu-empty-state p { font-size: var(--mabu-text-sm); color: var(--mabu-text-3); margin: 0; max-width: 420px; }
+
+.mabu-loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+  color: var(--mabu-text-2);
+  font-size: var(--mabu-text-sm);
+}
+.mabu-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--mabu-border-strong);
+  border-top-color: var(--mabu-primary);
+  animation: mabuSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes mabuSpin { to { transform: rotate(360deg); } }
+
+/* ---- Reader output ---- */
+.mabu-reader-output { min-height: 120px; }
+.mabu-reader-output h4 {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mabu-text-3);
+  margin: 14px 0 4px 0;
+}
+.mabu-reader-output h4:first-child { margin-top: 0; }
+.mabu-reader-output p { margin: 0 0 4px 0; font-size: 13.5px; overflow-wrap: anywhere; }
+
+/* ==========================================================================
+   Case workspace
+   ========================================================================== */
+
+.mabu-case-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+}
+.mabu-case-kicker {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mabu-gold);
+  margin-bottom: 4px;
+}
+.mabu-case-title-group h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.mabu-case-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 12px;
+  color: var(--mabu-text-3);
+}
+.mabu-case-meta b { color: var(--mabu-text-2); font-weight: 500; font-family: var(--mabu-font-mono); font-size: 11.5px; }
+.mabu-case-header .mabu-actions select { width: auto; min-width: 110px; }
+
+.mabu-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--mabu-border);
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+.mabu-tab {
+  position: relative;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  color: var(--mabu-text-3);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mabu-tab:hover { color: var(--mabu-text); }
+.mabu-tab.active { color: var(--mabu-text); }
+.mabu-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--mabu-primary);
+}
+.mabu-tab-panel { display: none; }
+.mabu-tab-panel.active { display: block; }
+
+/* ==========================================================================
+   Timeline
+   ========================================================================== */
+
+.mabu-timeline { position: relative; margin-top: 8px; padding-left: 22px; }
+.mabu-timeline::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--mabu-border-strong);
+}
+.mabu-timeline .mabu-empty-state, .mabu-timeline .mabu-loading-state { margin-left: -22px; }
+.mabu-timeline-item { position: relative; padding: 0 0 18px 0; }
+.mabu-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -21px;
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--mabu-bg);
+  border: 2px solid var(--mabu-primary);
+}
+.mabu-timeline-date { font-family: var(--mabu-font-mono); font-size: 11.5px; color: var(--mabu-text-3); }
+.mabu-timeline-title { font-weight: 500; font-size: 14.5px; margin: 2px 0; color: var(--mabu-text); }
+.mabu-timeline-title:hover { color: var(--mabu-primary-hover); text-decoration: underline; }
+.mabu-timeline-summary { font-size: 13px; color: var(--mabu-text-2); }
+
+/* ==========================================================================
+   Relationship graph
+   ========================================================================== */
+
+.mabu-graph-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.mabu-graph-toolbar select { width: auto; min-width: 200px; margin-right: auto; }
+.mabu-graph-toolbar .mabu-spacer { margin-right: auto; }
+.mabu-graph-legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--mabu-text-3); margin-bottom: 10px; }
+.mabu-graph-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.mabu-graph-legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.mabu-graph-legend-swatch.is-case { background: var(--mabu-primary); }
+.mabu-graph-legend-swatch.is-selected { background: var(--mabu-gold); }
+.mabu-graph-legend-line { width: 18px; height: 0; border-top: 1px solid #4A6285; display: inline-block; }
+
+.mabu-graph-wrap {
+  border: 1px solid var(--mabu-border);
+  border-radius: var(--mabu-radius);
+  overflow: hidden;
+  background:
+    radial-gradient(circle, rgba(143, 166, 196, 0.10) 1px, transparent 1.2px) 0 0 / 22px 22px,
+    var(--mabu-bg-elev);
+}
+.mabu-graph-svg { display: block; width: 100%; height: 380px; cursor: grab; }
+.mabu-graph-svg:active { cursor: grabbing; }
+.mabu-graph-svg line.edge { stroke: #4A6285; stroke-width: 1.4; transition: opacity var(--mabu-fast); }
+.mabu-graph-svg line.edge.dim { opacity: 0.12; }
+.mabu-graph-svg circle.node {
+  fill: var(--mabu-primary);
+  stroke: var(--mabu-bg-elev);
+  stroke-width: 3;
+  cursor: pointer;
+  transition: opacity var(--mabu-fast), fill var(--mabu-fast);
+}
+.mabu-graph-svg circle.node:hover { fill: var(--mabu-primary-hover); }
+.mabu-graph-svg circle.node.selected { fill: var(--mabu-gold); }
+.mabu-graph-svg circle.node.dim { opacity: 0.25; }
+.mabu-graph-svg text { fill: var(--mabu-text-2); font-family: var(--mabu-font-sans); font-size: 11.5px; pointer-events: none; }
+
+.mabu-graph-panel {
+  margin-top: 14px;
+  padding: 4px 16px 12px 16px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-bg-elev);
+  border: 1px solid var(--mabu-border);
+}
+.mabu-graph-panel[hidden] { display: none; }
+
+/* ==========================================================================
+   Modal
+   ========================================================================== */
+
+.mabu-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mabu-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(5, 9, 15, 0.72);
+  backdrop-filter: blur(3px);
+}
+.mabu-modal-overlay[hidden] { display: none; }
+.mabu-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 22px 24px;
+  border-radius: var(--mabu-radius-lg);
+  background: var(--mabu-surface);
+  border: 1px solid var(--mabu-border-strong);
+  box-shadow: var(--mabu-shadow-lg);
+  animation: mabuFadeUp var(--mabu-med) var(--mabu-ease);
+}
+.mabu-modal h3 { font-size: var(--mabu-text-md); font-weight: 600; margin-bottom: 8px; }
+.mabu-modal p, #mabuModalBody { color: var(--mabu-text-2); font-size: 13.5px; line-height: 1.6; margin: 0; }
+.mabu-modal.mabu-modal-danger { border-top: 3px solid var(--mabu-danger); }
+.mabu-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+#mabuModalBody .mabu-toast { margin-bottom: 8px; }
+
+/* ==========================================================================
+   Command palette
+   ========================================================================== */
+
+.mabu-cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mabu-z-command-palette);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14vh 24px 24px 24px;
+  background: rgba(5, 9, 15, 0.72);
+  backdrop-filter: blur(3px);
+}
+.mabu-cmdk-overlay[hidden] { display: none; }
+.mabu-cmdk {
+  width: 100%;
+  max-width: 560px;
+  border-radius: var(--mabu-radius-lg);
+  background: var(--mabu-surface);
+  border: 1px solid var(--mabu-border-strong);
+  box-shadow: var(--mabu-shadow-lg);
+  overflow: hidden;
+  animation: mabuFadeUp var(--mabu-med) var(--mabu-ease);
+}
+.mabu-cmdk-search { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--mabu-border); color: var(--mabu-text-3); }
+.mabu-cmdk-input,
+.mabu-cmdk-search input.mabu-cmdk-input {
+  height: 52px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--mabu-text-md);
+  box-shadow: none;
+}
+.mabu-cmdk-input:focus { box-shadow: none; }
+.mabu-cmdk-list { max-height: 340px; overflow-y: auto; padding: 6px; }
+.mabu-cmdk-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: var(--mabu-radius);
+  font-size: 13.5px;
+  color: var(--mabu-text-2);
+  cursor: pointer;
+}
+.mabu-cmdk-item:hover, .mabu-cmdk-item.active { background: var(--mabu-primary-soft); color: var(--mabu-text); }
+.mabu-cmdk-item-hint { font-family: var(--mabu-font-mono); font-size: 11px; color: var(--mabu-text-3); }
+.mabu-cmdk-empty { padding: 20px 12px; text-align: center; color: var(--mabu-text-3); font-size: var(--mabu-text-sm); }
+.mabu-cmdk-footer {
+  display: flex;
+  gap: 16px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--mabu-border);
+  background: var(--mabu-bg-elev);
+  font-size: 11.5px;
+  color: var(--mabu-text-3);
+}
+.mabu-cmdk-footer kbd { margin-right: 4px; }
+
+/* ==========================================================================
+   Toasts
+   ========================================================================== */
+
+.mabu-toast-stack {
+  position: fixed;
+  top: calc(var(--mabu-banner-h) + 14px);
+  right: 18px;
+  z-index: var(--mabu-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  pointer-events: none;
+}
+.mabu-toast {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--mabu-radius);
+  background: var(--mabu-surface-2);
+  border: 1px solid var(--mabu-border-strong);
+  border-left: 3px solid var(--mabu-primary);
+  box-shadow: var(--mabu-shadow-lg);
+  font-size: 13px;
+  color: var(--mabu-text-2);
+  pointer-events: auto;
+  animation: mabuToastIn 220ms var(--mabu-ease);
+}
+.mabu-toast.leaving { animation: mabuToastOut 260ms var(--mabu-ease) forwards; }
+.mabu-toast-icon { display: inline-flex; margin-top: 1px; color: var(--mabu-primary); }
+.mabu-toast-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mabu-toast-title { color: var(--mabu-text); font-weight: 500; margin-bottom: 1px; }
+.mabu-toast-meta { color: var(--mabu-text-3); font-size: 10.5px; margin-top: 4px; font-family: var(--mabu-font-mono); }
+.mabu-toast-close {
+  border: none;
+  background: none;
+  color: var(--mabu-text-3);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.mabu-toast-close:hover { color: var(--mabu-text); }
+.mabu-toast[data-type="success"] { border-left-color: var(--mabu-success); }
+.mabu-toast[data-type="success"] .mabu-toast-icon { color: var(--mabu-success); }
+.mabu-toast[data-type="warning"] { border-left-color: var(--mabu-warning); }
+.mabu-toast[data-type="warning"] .mabu-toast-icon { color: var(--mabu-warning); }
+.mabu-toast[data-type="error"] { border-left-color: var(--mabu-danger); }
+.mabu-toast[data-type="error"] .mabu-toast-icon { color: var(--mabu-danger); }
+.mabu-toast-static { animation: none; box-shadow: none; }
+
+@keyframes mabuToastIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+@keyframes mabuToastOut { to { opacity: 0; transform: translateX(12px); } }
+
+/* ==========================================================================
+   Reduced motion (Settings toggle + OS preference)
+   ========================================================================== */
 
 .mabu-reduced-fx *,
 .mabu-reduced-fx *::before,
@@ -119,1502 +1711,54 @@
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .mabu-scanlines,
-  .mabu-noise,
-  .mabu-rain {
-    display: none;
-  }
-
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
 }
+/* Keep the loading spinner turning even with reduced motion — it's the only
+   signal that work is in progress. */
+.mabu-reduced-fx .mabu-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: var(--mabu-bg);
-  color: var(--mabu-text);
-  font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
-  font-size: 13.5px;
-}
-
-::selection {
-  background: var(--mabu-green);
-  color: #000;
-}
-
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--mabu-bg); }
-::-webkit-scrollbar-thumb { background: var(--mabu-border-light); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--mabu-green-dim); }
-
-/* ---------------- CRT / scanline overlay ---------------- */
-
-.mabu-scanlines {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: var(--mabu-z-scanlines);
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 1px,
-    rgba(0, 0, 0, 0.18) 2px,
-    rgba(0, 0, 0, 0.18) 3px
-  );
-  mix-blend-mode: multiply;
-  animation: mabuFlicker 6s infinite;
-}
-
-.mabu-noise {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: var(--mabu-z-noise);
-  background: radial-gradient(ellipse at center, rgba(0,255,102,0.03) 0%, rgba(0,0,0,0.35) 100%);
-}
-
-/* ---------------- Cyrillic digital rain background ---------------- */
-
-.mabu-rain {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: var(--mabu-z-rain);
-  opacity: 0.5;
-}
-
-@keyframes mabuFlicker {
-  0%, 100% { opacity: 1; }
-  92% { opacity: 1; }
-  93% { opacity: 0.85; }
-  94% { opacity: 1; }
-  96% { opacity: 0.9; }
-  97% { opacity: 1; }
-}
-
-@keyframes mabuTextGlowPulse {
-  0%, 100% { text-shadow: 0 0 6px rgba(0,255,102,0.5); }
-  50% { text-shadow: 0 0 12px rgba(0,255,102,0.85); }
-}
-
-.mabu-cursor {
-  display: inline-block;
-  animation: mabuBlink 1s steps(1) infinite;
-  color: var(--mabu-green);
-}
-
-@keyframes mabuBlink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-
-/* ---------------- Boot sequence ---------------- */
-
-.mabu-boot {
-  position: fixed;
-  inset: 0;
-  background: #010401;
-  color: var(--mabu-green);
-  z-index: var(--mabu-z-boot);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 40px 60px;
-}
-
-.mabu-boot[hidden] {
-  display: none;
-}
-
-.mabu-boot-skip {
-  position: absolute;
-  bottom: var(--mabu-space-6);
-  right: var(--mabu-space-6);
-  background: transparent;
-  border: 1px solid var(--mabu-border-light);
-  color: var(--mabu-text-dim);
-  padding: 8px 16px;
-  border-radius: var(--mabu-radius);
-  font-family: inherit;
-  font-size: var(--mabu-text-xs);
-  cursor: pointer;
-}
-
-.mabu-boot-skip:hover { color: var(--mabu-green); border-color: var(--mabu-green); }
-
-/* ---------------- Login screen ---------------- */
-
-.mabu-login-screen {
-  position: fixed;
-  inset: 0;
-  z-index: var(--mabu-z-login);
-  background: var(--mabu-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mabu-login-screen[hidden] {
-  display: none;
-}
-
-.mabu-login-box {
-  width: 100%;
-  max-width: 340px;
-  padding: 32px 28px;
-  background: var(--mabu-panel);
-  border: 1px solid var(--mabu-border-light);
-  border-radius: var(--mabu-radius);
-  box-shadow: var(--mabu-shadow);
-  text-align: center;
-}
-
-/* Login heading is the full emblem (it already contains the МАБУ wordmark);
-   the img alt text keeps the heading's accessible name. */
-.mabu-login-emblem {
-  margin: -6px 0 6px 0;
-  line-height: 0;
-}
-
-.mabu-login-emblem img {
-  width: 168px;
-  height: auto;
-  max-width: 100%;
-}
-
-.mabu-login-sub {
-  margin: 0 0 20px 0;
-  font-size: 11px;
-  color: var(--mabu-text-faint);
-  text-transform: lowercase;
-}
-
-.mabu-login-box .mabu-field {
-  text-align: left;
-}
-
-.mabu-login-error {
-  color: var(--mabu-red);
-  font-size: 12px;
-  min-height: 16px;
-  margin: 10px 0 0 0;
-}
-
-.mabu-login-setup-hint {
-  color: var(--mabu-amber);
-  font-size: 11px;
-  margin-top: 10px;
-  line-height: 1.5;
-}
-
-.mabu-login-setup-hint code {
-  color: var(--mabu-green);
-}
-
-.mabu-boot-log {
-  margin: 0 0 24px 0;
-  font-family: "Cascadia Code", "Consolas", monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  text-shadow: 0 0 6px rgba(0,255,102,0.6);
-  max-height: 70vh;
-  overflow: hidden;
-}
-
-.mabu-boot-bar {
-  width: 100%;
-  max-width: 480px;
-  height: 6px;
-  background: #0a1f0f;
-  border: 1px solid var(--mabu-border-light);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.mabu-boot-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: var(--mabu-gradient);
-  box-shadow: var(--mabu-glow);
-  transition: width 0.15s linear;
-}
-
-/* ---------------- Layout ---------------- */
-
-.mabu-shell {
-  display: flex;
-  min-height: 100vh;
-}
-
-.mabu-shell[hidden] {
-  display: none;
-}
-
-/* ---------------- Sidebar ---------------- */
-.mabu-sidebar {
-  width: 250px;
-  flex-shrink: 0;
-  background: var(--mabu-panel);
-  border-right: 1px solid var(--mabu-border);
-  display: flex;
-  flex-direction: column;
-  padding: 20px 14px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  box-shadow: inset -1px 0 0 rgba(0,255,102,0.05);
-}
-
-.mabu-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 8px 18px 8px;
-  border-bottom: 1px solid var(--mabu-border);
-  margin-bottom: 14px;
-}
-
-/* The hex mark carries its own frame, so no box/border here — just a glow
-   that follows the hexagon's outline. */
-.mabu-logo {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 6px rgba(0,255,102,0.35));
-}
-
-.mabu-logo img {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.mabu-brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
-}
-
-.mabu-brand-name {
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: 2px;
-  color: var(--mabu-green);
-  text-shadow: 0 0 8px rgba(0,255,102,0.6);
-  animation: mabuTextGlowPulse 3s ease-in-out infinite;
-}
-
-.mabu-brand-sub {
-  font-size: 10.5px;
-  color: var(--mabu-text-faint);
-}
-
-.mabu-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.mabu-nav-group {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--mabu-text-faint);
-  padding: 12px 12px 4px 12px;
-}
-
-.mabu-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--mabu-text-dim);
-  padding: 9px 12px;
-  border-radius: var(--mabu-radius);
-  font-size: 12.5px;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
-}
-
-.mabu-nav-icon {
-  width: 24px;
-  display: inline-flex;
-  justify-content: flex-start;
-  color: var(--mabu-green-dim);
-  font-size: 11px;
-}
-
-.mabu-nav-item:hover {
-  background: rgba(0, 255, 102, 0.06);
-  color: var(--mabu-text);
-  border-color: var(--mabu-border);
-}
-
-.mabu-nav-item.active {
-  background: rgba(0, 255, 102, 0.1);
-  color: var(--mabu-green-bright);
-  border: 1px solid var(--mabu-border-light);
-  box-shadow: inset 0 0 12px rgba(0,255,102,0.08);
-}
-
-.mabu-nav-item.active .mabu-nav-icon { color: var(--mabu-green); }
-
-.mabu-sidebar-footer {
-  border-top: 1px solid var(--mabu-border);
-  padding-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mabu-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11.5px;
-  color: var(--mabu-text-dim);
-}
-
-.mabu-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mabu-text-faint);
-  box-shadow: 0 0 6px var(--mabu-text-faint);
-}
-
-.mabu-status-dot.online {
-  background: var(--mabu-green);
-  box-shadow: 0 0 8px var(--mabu-green);
-  animation: mabuTextGlowPulse 2s ease-in-out infinite;
-}
-
-.mabu-status-dot.offline {
-  background: var(--mabu-red);
-  box-shadow: 0 0 8px var(--mabu-red);
-}
-
-.mabu-clock {
-  font-size: 11px;
-  color: var(--mabu-green-dim);
-  letter-spacing: 1px;
-}
-
-.mabu-version {
-  font-size: 10px;
-  color: var(--mabu-text-faint);
-}
-
-/* ---------------- Main ---------------- */
-.mabu-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.mabu-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 30px;
-  border-bottom: 1px solid var(--mabu-border);
-  background: linear-gradient(180deg, rgba(0,255,102,0.04), transparent);
-}
-
-.mabu-topbar h1 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--mabu-text);
-  text-transform: lowercase;
-}
-
-.mabu-prompt {
-  color: var(--mabu-green);
-  margin-right: 4px;
-}
-
-.mabu-topbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--mabu-space-2);
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.mabu-badge {
-  font-size: 10.5px;
-  padding: 5px 12px;
-  border-radius: 2px;
-  background: rgba(0, 255, 102, 0.06);
-  color: var(--mabu-green);
-  border: 1px solid var(--mabu-border-light);
-  letter-spacing: 0.5px;
-}
-
-.mabu-content {
-  padding: 24px 30px 60px 30px;
-  overflow-y: auto;
-}
-
-.mabu-view { display: none; }
-.mabu-view.active { display: block; animation: mabuFadeIn 0.15s ease; }
-
-@keyframes mabuFadeIn {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ---------------- Grid & Cards ---------------- */
-.mabu-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.mabu-grid[hidden] {
-  display: none;
-}
-
-.mabu-grid-2 { grid-template-columns: repeat(2, 1fr); }
-.mabu-grid-span-2 { grid-column: 1 / -1; }
-
-.mabu-card {
-  background: var(--mabu-panel);
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-  padding: 18px 20px;
-  box-shadow: var(--mabu-shadow);
-  position: relative;
-}
-
-.mabu-card::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--mabu-green-dim), transparent);
-}
-
-.mabu-card h3 {
-  margin: 0 0 12px 0;
-  font-size: 13.5px;
-  color: var(--mabu-green-bright);
-  font-weight: 600;
-  text-transform: lowercase;
-}
-
-.mabu-subhead {
-  font-size: 11px;
-  color: var(--mabu-text-faint);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin: 0 0 6px 0;
-}
-
-.mabu-card-accent {
-  background: linear-gradient(135deg, rgba(0,255,102,0.05), rgba(0,194,168,0.03));
-  border: 1px solid var(--mabu-border-light);
-}
-
-.mabu-note {
-  color: var(--mabu-text-faint);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.mabu-list {
-  margin: 0;
-  padding-left: 18px;
-  color: var(--mabu-text-dim);
-  font-size: 12.5px;
-  line-height: 1.85;
-}
-
-.mabu-list strong { color: var(--mabu-green); }
-
-/* ---------------- Stats ---------------- */
-.mabu-stat-row {
-  display: flex;
-  gap: 26px;
-  margin: 8px 0 14px 0;
-}
-
-.mabu-stat {
-  display: flex;
-  flex-direction: column;
-}
-
-.mabu-stat-num {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--mabu-green);
-  text-shadow: 0 0 10px rgba(0,255,102,0.5);
-}
-
-.mabu-stat-label {
-  font-size: 10.5px;
-  color: var(--mabu-text-faint);
-}
-
-.mabu-quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* ---------------- Forms ---------------- */
-.mabu-field {
-  margin-bottom: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mabu-field label {
-  font-size: 11px;
-  color: var(--mabu-text-dim);
-  font-weight: 600;
-}
-
-.mabu-field label::before {
-  content: "> ";
-  color: var(--mabu-green-dim);
-}
-
-.mabu-field-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.mabu-field-row input,
-.mabu-field-row select {
-  flex: 1;
-}
-
-input[type="text"],
-input[type="password"],
-select,
-textarea {
-  background: #010601;
-  border: 1px solid var(--mabu-border-light);
-  color: var(--mabu-text);
-  padding: 9px 12px;
-  border-radius: var(--mabu-radius);
-  font-size: 12.5px;
-  font-family: inherit;
-  outline: none;
-  caret-color: var(--mabu-green);
-  cursor: text;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-input[type="text"]:focus,
-input[type="password"]:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--mabu-green);
-  box-shadow: 0 0 0 3px rgba(0,255,102,0.12), var(--mabu-glow);
-}
-
-textarea {
-  resize: vertical;
-  width: 100%;
-  line-height: 1.5;
-}
-
-input[type="file"] {
-  background: #010601;
-  border: 1px dashed var(--mabu-border-light);
-  color: var(--mabu-text-dim);
-  padding: 9px 12px;
-  border-radius: var(--mabu-radius);
-  font-size: 12px;
-  font-family: inherit;
-  width: 100%;
-  cursor: pointer;
-}
-
-input[type="file"]::file-selector-button {
-  background: transparent;
-  color: var(--mabu-green);
-  border: 1px solid var(--mabu-green-dim);
-  border-radius: var(--mabu-radius);
-  padding: 5px 12px;
-  font-size: 11.5px;
-  font-family: inherit;
-  cursor: pointer;
-  margin-right: 10px;
-}
-
-input[type="file"]::file-selector-button:hover {
-  background: rgba(0,255,102,0.1);
-  border-color: var(--mabu-green);
-}
-
-textarea[readonly] {
-  color: var(--mabu-green-bright);
-  background: #000200;
-}
-
-/* ---------------- Buttons ---------------- */
-.mabu-btn {
-  background: transparent;
-  color: var(--mabu-green);
-  border: 1px solid var(--mabu-green-dim);
-  padding: 9px 16px;
-  border-radius: var(--mabu-radius);
-  font-size: 12px;
-  font-family: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.12s ease;
-  text-transform: lowercase;
-}
-
-.mabu-btn:hover {
-  background: rgba(0,255,102,0.1);
-  border-color: var(--mabu-green);
-  box-shadow: var(--mabu-glow);
-}
-
-.mabu-btn:active { transform: translateY(1px); }
-
-.mabu-btn-secondary {
-  background: var(--mabu-panel-alt);
-  border: 1px solid var(--mabu-border);
-  color: var(--mabu-text-dim);
-}
-
-.mabu-btn-secondary:hover {
-  color: var(--mabu-green);
-  border-color: var(--mabu-green-dim);
-}
-
-.mabu-btn-danger {
-  background: rgba(255, 59, 92, 0.1);
-  border: 1px solid rgba(255, 59, 92, 0.4);
-  color: var(--mabu-red);
-  padding: 5px 10px;
-  font-size: 11px;
-  border-radius: var(--mabu-radius);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.mabu-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-.mabu-save-status {
-  font-size: 12px;
-  color: var(--mabu-text-dim);
-}
-
-/* ---------------- Result / KV ---------------- */
-.mabu-result-box {
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: #010601;
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-}
-
-.mabu-kv {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 0;
-  border-bottom: 1px dashed var(--mabu-border);
-  font-size: 12.5px;
-}
-
-.mabu-kv:last-child { border-bottom: none; }
-.mabu-kv span { color: var(--mabu-text-faint); }
-.mabu-kv b { color: var(--mabu-green-bright); font-weight: 600; text-align: right; word-break: break-all; }
-.mabu-mono-out { font-size: 11px; }
-
-.mabu-code {
-  background: #010601;
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-  padding: 14px;
-  font-family: "Cascadia Code", "Consolas", monospace;
-  font-size: 11.5px;
-  color: var(--mabu-cyan);
-  overflow-x: auto;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* ---------------- Table ---------------- */
-.mabu-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 6px;
-  font-size: 12.5px;
-}
-
-.mabu-table th {
-  text-align: left;
-  color: var(--mabu-text-faint);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--mabu-border-light);
-}
-
-.mabu-table td {
-  padding: 9px 10px;
-  border-bottom: 1px solid var(--mabu-border);
-  color: var(--mabu-text-dim);
-  word-break: break-word;
-}
-
-.mabu-table tr:hover td { background: rgba(0,255,102,0.04); }
-
-.mabu-table a { color: var(--mabu-cyan); text-decoration: none; }
-.mabu-table a:hover { text-decoration: underline; }
-
-.mabu-tag {
-  display: inline-block;
-  background: rgba(0, 255, 102, 0.08);
-  color: var(--mabu-green);
-  border: 1px solid var(--mabu-border-light);
-  padding: 2px 8px;
-  border-radius: 2px;
-  font-size: 10.5px;
-  margin: 2px 3px 2px 0;
-}
-
-.mabu-vault-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.mabu-vault-header h3 { margin: 0; }
-
-.mabu-reader-output {
-  background: #010601;
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-  padding: 16px;
-  min-height: 200px;
-  max-height: 480px;
-  overflow-y: auto;
-  font-size: 12.5px;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-.mabu-reader-output h4 {
-  margin: 14px 0 4px 0;
-  color: var(--mabu-green);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.mabu-reader-output p { margin: 0 0 8px 0; color: var(--mabu-text-dim); white-space: pre-wrap; }
-
-/* ---------------- Status pill (username matrix) ---------------- */
-.mabu-pill {
-  display: inline-block;
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  cursor: pointer;
-  user-select: none;
-  border: 1px solid var(--mabu-border);
-  font-family: inherit;
-  background: transparent;
-}
-
-.mabu-pill:focus-visible {
-  outline: 2px solid var(--mabu-green);
-  outline-offset: 2px;
-}
-
-.mabu-pill[data-status="confirmed"] { color: var(--mabu-green); border-color: var(--mabu-green-dim); background: rgba(0,255,102,0.08); }
-.mabu-pill[data-status="not_found"] { color: var(--mabu-red); border-color: rgba(255,59,92,0.4); background: rgba(255,59,92,0.08); }
-.mabu-pill[data-status="unknown"] { color: var(--mabu-amber); border-color: rgba(255,176,0,0.4); background: rgba(255,176,0,0.08); }
-
-/* ---------------- Timeline ---------------- */
-.mabu-timeline {
-  position: relative;
-  padding-left: 20px;
-  margin-top: 10px;
-}
-
-.mabu-timeline::before {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 4px;
-  bottom: 4px;
-  width: 1px;
-  background: var(--mabu-border-light);
-}
-
-.mabu-timeline-item {
-  position: relative;
-  padding: 0 0 20px 20px;
-}
-
-.mabu-timeline-item::before {
-  content: "";
-  position: absolute;
-  left: -20px;
-  top: 4px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--mabu-green);
-  box-shadow: var(--mabu-glow);
-}
-
-.mabu-timeline-date {
-  font-size: 10.5px;
-  color: var(--mabu-text-faint);
-}
-
-.mabu-timeline-title {
-  font-size: 13px;
-  color: var(--mabu-green-bright);
-  margin: 2px 0 4px 0;
-}
-
-.mabu-timeline-summary {
-  font-size: 12px;
-  color: var(--mabu-text-dim);
-}
-
-/* ---------------- Graph ---------------- */
-.mabu-graph-wrap {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-  background: #010601;
-}
-
-.mabu-graph-svg {
-  width: 100%;
-  min-height: 360px;
-  display: block;
-}
-
-.mabu-graph-svg text {
-  fill: var(--mabu-text-dim);
-  font-family: "Cascadia Code", "Consolas", monospace;
-  font-size: 10px;
-}
-
-.mabu-graph-svg circle.node {
-  fill: #010601;
-  stroke: var(--mabu-green);
-  stroke-width: 1.5;
-}
-
-.mabu-graph-svg line.edge {
-  stroke: var(--mabu-border-light);
-  stroke-width: 1;
-}
-
-.mabu-graph-svg line.edge.dim { opacity: 0.15; }
-.mabu-graph-svg circle.node.dim { opacity: 0.25; }
-.mabu-graph-svg circle.node.selected { stroke: var(--mabu-cyan); stroke-width: 2.5; filter: drop-shadow(0 0 4px var(--mabu-cyan)); }
-.mabu-graph-svg circle.node { cursor: pointer; transition: opacity var(--mabu-duration) var(--mabu-ease); }
-.mabu-graph-svg text { cursor: default; user-select: none; }
-
-.mabu-graph-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--mabu-space-2);
-  flex-wrap: wrap;
-  margin-bottom: var(--mabu-space-3);
-}
-
-.mabu-graph-legend {
-  display: flex;
-  gap: var(--mabu-space-4);
-  flex-wrap: wrap;
-  font-size: var(--mabu-text-xs);
-  color: var(--mabu-text-faint);
-  padding: var(--mabu-space-2) 0;
-}
-
-.mabu-graph-legend-item { display: flex; align-items: center; gap: 6px; }
-.mabu-graph-legend-swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-
-.mabu-graph-panel {
-  margin-top: var(--mabu-space-3);
-  padding: var(--mabu-space-3) var(--mabu-space-4);
-  background: var(--mabu-input-bg);
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-}
-
-.mabu-graph-panel[hidden] { display: none; }
-
-/* ---------------- Icon buttons (topbar utilities) ---------------- */
-.mabu-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 34px;
-  height: 34px;
-  background: transparent;
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-  color: var(--mabu-text-dim);
-  cursor: pointer;
-  font-size: var(--mabu-text-sm);
-  font-family: inherit;
-  position: relative;
-  transition: all var(--mabu-duration-fast) var(--mabu-ease);
-}
-
-.mabu-icon-btn:hover {
-  color: var(--mabu-green);
-  border-color: var(--mabu-green-dim);
-  background: rgba(0,255,102,0.06);
-}
-
-.mabu-icon-btn-wide { width: auto; padding: 0 12px; }
-
-.mabu-icon-btn .mabu-badge-count {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: var(--mabu-radius-pill);
-  background: var(--mabu-red);
-  color: #fff;
-  font-size: 9.5px;
-  line-height: 16px;
-  text-align: center;
-  font-weight: 700;
-}
-
-/* ---------------- Toast / notification system ---------------- */
-.mabu-toast-stack {
-  position: fixed;
-  top: var(--mabu-space-5);
-  right: var(--mabu-space-5);
-  z-index: var(--mabu-z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: var(--mabu-space-2);
-  max-width: 360px;
-  pointer-events: none;
-}
-
-.mabu-toast {
-  pointer-events: auto;
-  background: var(--mabu-surface-raised);
-  border: 1px solid var(--mabu-border-light);
-  border-left: 3px solid var(--mabu-green);
-  border-radius: var(--mabu-radius);
-  padding: var(--mabu-space-3) var(--mabu-space-4);
-  box-shadow: var(--mabu-shadow-lg);
-  font-size: var(--mabu-text-sm);
-  color: var(--mabu-text);
-  display: flex;
-  align-items: flex-start;
-  gap: var(--mabu-space-2);
-  animation: mabuToastIn var(--mabu-duration-slow) var(--mabu-ease);
-}
-
-.mabu-toast.leaving { animation: mabuToastOut var(--mabu-duration-slow) var(--mabu-ease) forwards; }
-
-.mabu-toast-icon { font-weight: 800; flex-shrink: 0; }
-.mabu-toast-body { flex: 1; line-height: 1.5; }
-.mabu-toast-title { font-weight: 700; margin-bottom: 2px; text-transform: uppercase; font-size: var(--mabu-text-xs); letter-spacing: 0.5px; }
-.mabu-toast-close { background: none; border: none; color: var(--mabu-text-faint); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
-.mabu-toast-close:hover { color: var(--mabu-text); }
-
-.mabu-toast[data-type="success"] { border-left-color: var(--mabu-success); }
-.mabu-toast[data-type="success"] .mabu-toast-icon { color: var(--mabu-success); }
-.mabu-toast[data-type="info"] { border-left-color: var(--mabu-info); }
-.mabu-toast[data-type="info"] .mabu-toast-icon { color: var(--mabu-info); }
-.mabu-toast[data-type="warning"] { border-left-color: var(--mabu-warning); }
-.mabu-toast[data-type="warning"] .mabu-toast-icon { color: var(--mabu-warning); }
-.mabu-toast[data-type="error"] { border-left-color: var(--mabu-danger); }
-.mabu-toast[data-type="error"] .mabu-toast-icon { color: var(--mabu-danger); }
-
-@keyframes mabuToastIn {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes mabuToastOut {
-  from { opacity: 1; transform: translateX(0); }
-  to { opacity: 0; transform: translateX(24px); }
-}
-
-/* ---------------- Modal / confirmation dialog ---------------- */
-.mabu-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(1, 4, 1, 0.75);
-  z-index: var(--mabu-z-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--mabu-space-4);
-}
-
-.mabu-modal-overlay[hidden] { display: none; }
-
-.mabu-modal {
-  width: 100%;
-  max-width: 440px;
-  background: var(--mabu-surface-raised);
-  border: 1px solid var(--mabu-border-light);
-  border-radius: var(--mabu-radius-lg);
-  box-shadow: var(--mabu-shadow-lg);
-  padding: var(--mabu-space-6);
-}
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
 
-.mabu-modal.mabu-modal-danger { border-color: rgba(255,59,92,0.5); }
-
-.mabu-modal h3 {
-  margin: 0 0 var(--mabu-space-2) 0;
-  font-size: var(--mabu-text-md);
-  color: var(--mabu-text);
-}
-
-.mabu-modal.mabu-modal-danger h3 { color: var(--mabu-red); }
-
-.mabu-modal p {
-  color: var(--mabu-text-dim);
-  font-size: var(--mabu-text-sm);
-  line-height: 1.6;
-  margin: 0 0 var(--mabu-space-4) 0;
-}
-
-.mabu-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--mabu-space-2);
-}
-
-/* ---------------- Command palette ---------------- */
-.mabu-cmdk-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(1, 4, 1, 0.7);
-  z-index: var(--mabu-z-command-palette);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 12vh var(--mabu-space-4) var(--mabu-space-4) var(--mabu-space-4);
-}
-
-.mabu-cmdk-overlay[hidden] { display: none; }
-
-.mabu-cmdk {
-  width: 100%;
-  max-width: 560px;
-  background: var(--mabu-surface-raised);
-  border: 1px solid var(--mabu-green-dim);
-  border-radius: var(--mabu-radius-lg);
-  box-shadow: var(--mabu-shadow-lg);
-  overflow: hidden;
-}
-
-.mabu-cmdk-input {
-  width: 100%;
-  border: none;
-  border-bottom: 1px solid var(--mabu-border);
-  background: transparent;
-  color: var(--mabu-text);
-  padding: var(--mabu-space-4);
-  font-size: var(--mabu-text-md);
-  font-family: inherit;
-  outline: none;
-}
-
-.mabu-cmdk-list {
-  max-height: 360px;
-  overflow-y: auto;
-  padding: var(--mabu-space-2);
-}
-
-.mabu-cmdk-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--mabu-space-3);
-  border-radius: var(--mabu-radius);
-  cursor: pointer;
-  color: var(--mabu-text-dim);
-  font-size: var(--mabu-text-sm);
-}
-
-.mabu-cmdk-item.active,
-.mabu-cmdk-item:hover {
-  background: rgba(0,255,102,0.08);
-  color: var(--mabu-green-bright);
-}
-
-.mabu-cmdk-item-hint {
-  font-size: var(--mabu-text-xs);
-  color: var(--mabu-text-faint);
-}
-
-.mabu-cmdk-empty {
-  padding: var(--mabu-space-5);
-  text-align: center;
-  color: var(--mabu-text-faint);
-  font-size: var(--mabu-text-sm);
-}
-
-.mabu-cmdk-footer {
-  border-top: 1px solid var(--mabu-border);
-  padding: var(--mabu-space-2) var(--mabu-space-4);
-  font-size: var(--mabu-text-xs);
-  color: var(--mabu-text-faint);
-  display: flex;
-  gap: var(--mabu-space-4);
-}
-
-/* ---------------- Case workspace tabs ---------------- */
-.mabu-case-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--mabu-space-4);
-  flex-wrap: wrap;
-  margin-bottom: var(--mabu-space-4);
-}
-
-.mabu-case-title-group h2 {
-  margin: 0 0 4px 0;
-  font-size: var(--mabu-text-lg);
-  color: var(--mabu-text);
-}
-
-.mabu-case-meta {
-  display: flex;
-  gap: var(--mabu-space-3);
-  flex-wrap: wrap;
-  font-size: var(--mabu-text-xs);
-  color: var(--mabu-text-faint);
-}
-
-.mabu-tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: 1px solid var(--mabu-border);
-  margin-bottom: var(--mabu-space-4);
-  overflow-x: auto;
-}
-
-.mabu-tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--mabu-text-faint);
-  padding: var(--mabu-space-3) var(--mabu-space-4);
-  font-family: inherit;
-  font-size: var(--mabu-text-sm);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color var(--mabu-duration-fast) var(--mabu-ease);
-}
-
-.mabu-tab:hover { color: var(--mabu-text-dim); }
-
-.mabu-tab.active {
-  color: var(--mabu-green);
-  border-bottom-color: var(--mabu-green);
-}
-
-.mabu-tab-panel { display: none; }
-.mabu-tab-panel.active { display: block; animation: mabuFadeIn var(--mabu-duration-slow) var(--mabu-ease); }
-
-/* ---------------- Identifier chips ---------------- */
-.mabu-chip-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--mabu-space-2);
-  margin: var(--mabu-space-2) 0;
-}
-
-.mabu-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--mabu-input-bg);
-  border: 1px solid var(--mabu-border-light);
-  border-radius: var(--mabu-radius);
-  padding: 6px 10px;
-  font-size: var(--mabu-text-xs);
-}
-
-.mabu-chip-type {
-  text-transform: uppercase;
-  font-size: 9px;
-  letter-spacing: 0.5px;
-  color: var(--mabu-text-faint);
-  padding: 1px 5px;
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius-sm);
-}
-
-.mabu-chip-value { color: var(--mabu-green-bright); word-break: break-all; }
-
-.mabu-chip-btn {
-  background: none;
-  border: none;
-  color: var(--mabu-text-faint);
-  cursor: pointer;
-  padding: 0 2px;
-  font-size: 12px;
-  line-height: 1;
-}
-
-.mabu-chip-btn:hover { color: var(--mabu-red); }
-
-/* ---------------- Data-provenance labels ---------------- */
-.mabu-provenance {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 7px;
-  border-radius: var(--mabu-radius-sm);
-  font-weight: 700;
-}
-
-.mabu-provenance[data-kind="observed"] { color: var(--mabu-cyan); background: var(--mabu-info-bg); border: 1px solid rgba(53,255,240,0.3); }
-.mabu-provenance[data-kind="source"] { color: var(--mabu-green); background: var(--mabu-success-bg); border: 1px solid var(--mabu-border-light); }
-.mabu-provenance[data-kind="analyst"] { color: var(--mabu-text-dim); background: rgba(111,191,138,0.08); border: 1px solid var(--mabu-border); }
-.mabu-provenance[data-kind="correlation"] { color: var(--mabu-amber); background: var(--mabu-warning-bg); border: 1px solid rgba(255,176,0,0.3); }
-.mabu-provenance[data-kind="inference"] { color: #c98bff; background: rgba(201,139,255,0.08); border: 1px solid rgba(201,139,255,0.3); }
-
-/* ---------------- Empty / loading states ---------------- */
-.mabu-empty-state {
-  text-align: center;
-  padding: var(--mabu-space-10) var(--mabu-space-4);
-  color: var(--mabu-text-faint);
-}
-
-.mabu-empty-state-icon {
-  font-size: 28px;
-  margin-bottom: var(--mabu-space-3);
-  color: var(--mabu-border-strong);
-}
-
-.mabu-empty-state h4 {
-  color: var(--mabu-text-dim);
-  font-size: var(--mabu-text-md);
-  margin: 0 0 6px 0;
-  text-transform: none;
-}
-
-.mabu-empty-state p {
-  font-size: var(--mabu-text-sm);
-  margin: 0 0 var(--mabu-space-4) 0;
-}
-
-.mabu-loading-state {
-  display: flex;
-  align-items: center;
-  gap: var(--mabu-space-2);
-  padding: var(--mabu-space-4);
-  color: var(--mabu-text-dim);
-  font-size: var(--mabu-text-sm);
-}
-
-.mabu-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--mabu-border);
-  border-top-color: var(--mabu-green);
-  border-radius: 50%;
-  animation: mabuSpin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes mabuSpin { to { transform: rotate(360deg); } }
-
-/* ---------------- Settings panel ---------------- */
-.mabu-settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--mabu-space-3) 0;
-  border-bottom: 1px solid var(--mabu-border);
-  gap: var(--mabu-space-4);
-}
-
-.mabu-settings-row:last-child { border-bottom: none; }
-
-.mabu-settings-label { font-size: var(--mabu-text-sm); color: var(--mabu-text); }
-.mabu-settings-desc { font-size: var(--mabu-text-xs); color: var(--mabu-text-faint); margin-top: 2px; }
-
-.mabu-switch {
-  position: relative;
-  width: 38px;
-  height: 20px;
-  flex-shrink: 0;
-}
-
-.mabu-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
-}
-
-.mabu-switch-track {
-  position: absolute;
-  inset: 0;
-  background: var(--mabu-input-bg);
-  border: 1px solid var(--mabu-border-light);
-  border-radius: var(--mabu-radius-pill);
-  cursor: pointer;
-  transition: background var(--mabu-duration) var(--mabu-ease);
-}
-
-.mabu-switch-track::before {
-  content: "";
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  left: 2px;
-  top: 2px;
-  background: var(--mabu-text-faint);
-  border-radius: 50%;
-  transition: transform var(--mabu-duration) var(--mabu-ease), background var(--mabu-duration) var(--mabu-ease);
-}
-
-.mabu-switch input:checked + .mabu-switch-track {
-  border-color: var(--mabu-green);
-  background: rgba(0,255,102,0.08);
-}
-
-.mabu-switch input:checked + .mabu-switch-track::before {
-  transform: translateX(18px);
-  background: var(--mabu-green);
-  box-shadow: 0 0 4px var(--mabu-green);
-}
-
-/* ---------------- Confidence / connection cards ---------------- */
-.mabu-connection-card {
-  border: 1px solid var(--mabu-border);
-  border-radius: var(--mabu-radius);
-  padding: var(--mabu-space-4);
-  margin-bottom: var(--mabu-space-3);
-  background: var(--mabu-input-bg);
-}
-
-.mabu-connection-title {
-  font-size: var(--mabu-text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--mabu-amber);
-  margin-bottom: var(--mabu-space-2);
-  font-weight: 700;
-}
-
-.mabu-connection-evidence {
-  font-size: var(--mabu-text-sm);
-  color: var(--mabu-text-dim);
-  line-height: 1.7;
-}
-
-.mabu-connection-assessment {
-  margin-top: var(--mabu-space-2);
-  padding-top: var(--mabu-space-2);
-  border-top: 1px dashed var(--mabu-border);
-  font-size: var(--mabu-text-xs);
-  color: var(--mabu-text-faint);
+@media (max-width: 1180px) {
+  .mabu-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mabu-search-btn { min-width: 0; }
+  .mabu-search-btn .mabu-search-label { display: none; }
 }
 
-/* ---------------- Skip-to-content / focus visibility ---------------- */
-.mabu-skip-link {
-  position: absolute;
-  left: -9999px;
-  top: 0;
-  z-index: var(--mabu-z-modal);
-  background: var(--mabu-green);
-  color: #000;
-  padding: 10px 16px;
-  border-radius: var(--mabu-radius);
-  font-weight: 700;
+@media (max-width: 960px) {
+  .mabu-login-layout { display: flex; flex-direction: column; flex: none; }
+  .mabu-login-aside { padding: 28px 24px; border-right: none; border-bottom: 1px solid var(--mabu-border); overflow: visible; }
+  .mabu-login-pitch { padding: 22px 0 0 0; }
+  .mabu-login-pitch h1 { font-size: 22px; margin-bottom: 0; }
+  .mabu-login-pitch p, .mabu-login-points, .mabu-login-legal { display: none; }
+  .mabu-login-main { padding: 32px 24px 40px 24px; }
 }
-
-.mabu-skip-link:focus {
-  left: var(--mabu-space-3);
-  top: var(--mabu-space-3);
-}
-
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--mabu-green);
-  outline-offset: 2px;
+@media (max-width: 520px) {
+  .mabu-login-pitch { display: none; }
+  .mabu-login-brand-sub { font-size: 9.5px; letter-spacing: 0.14em; }
 }
 
-/* ---------------- Responsive ---------------- */
 @media (max-width: 900px) {
-  .mabu-shell { flex-direction: column; }
-  .mabu-sidebar { width: 100%; height: auto; position: relative; }
-  .mabu-grid, .mabu-grid-2 { grid-template-columns: 1fr; }
-  .mabu-toast-stack { left: var(--mabu-space-3); right: var(--mabu-space-3); max-width: none; }
-  .mabu-topbar { padding: var(--mabu-space-4) var(--mabu-space-5); }
-  .mabu-content { padding: var(--mabu-space-5) var(--mabu-space-5) var(--mabu-space-8) var(--mabu-space-5); }
-  .mabu-graph-toolbar { flex-wrap: wrap; }
-}
-
-@media (max-width: 640px) {
-  .mabu-topbar { flex-direction: column; align-items: flex-start; gap: var(--mabu-space-2); padding: var(--mabu-space-3) var(--mabu-space-4); }
-  .mabu-topbar-right { width: 100%; justify-content: flex-start; }
-  .mabu-content { padding: var(--mabu-space-4) var(--mabu-space-3) var(--mabu-space-8) var(--mabu-space-3); }
-  .mabu-case-header { flex-direction: column; }
-  .mabu-case-header .mabu-actions { width: 100%; }
-  .mabu-field-row { flex-direction: column; }
-  .mabu-cmdk-overlay { padding-top: 8vh; }
-  .mabu-vault-header { flex-direction: column; align-items: flex-start; gap: var(--mabu-space-2); }
-  .mabu-table-wrap { overflow-x: auto; }
-  .mabu-table-wrap .mabu-table { min-width: 480px; }
+  .mabu-shell { height: auto; min-height: 100vh; }
+  .mabu-shell-body { flex-direction: column; }
+  .mabu-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--mabu-border); }
+  .mabu-nav { flex-direction: row; flex-wrap: wrap; gap: 4px; overflow: visible; }
+  .mabu-nav-group { display: none; }
+  .mabu-nav-item { width: auto; }
+  .mabu-nav-item.active::before { display: none; }
+  .mabu-main { overflow: visible; }
+  .mabu-topbar { padding: 14px 18px; flex-wrap: wrap; }
+  .mabu-page-desc { display: none; }
+  .mabu-content { padding: 20px 18px 40px 18px; }
+  .mabu-grid, .mabu-grid-2, .mabu-module-grid, .mabu-stat-row { grid-template-columns: 1fr; }
+  .mabu-grid-span-2 { grid-column: auto; }
+  .mabu-banner .mabu-banner-extra { display: none; }
+  .mabu-field-row { flex-wrap: wrap; }
 }
