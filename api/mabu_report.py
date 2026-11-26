@@ -3,155 +3,337 @@ mabu_report.py — PDF report generation for MABU cases and correlation clusters
 
 Uses reportlab (pure Python, no external binary dependency) so this works
 identically on Windows and the Ubuntu VPS with no extra system packages.
+
+All case content is escaped before it reaches a Paragraph: reportlab parses
+paragraph text as markup, so an unescaped "<" or "&" in a finding would
+otherwise break report generation (or be interpreted as formatting).
 """
 
 import io
 from datetime import datetime, timezone
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable,
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable, KeepTogether,
 )
 
-MABU_GREEN = colors.HexColor("#0e5c28")
-MABU_DARK = colors.HexColor("#0a140c")
-MABU_TEXT = colors.HexColor("#1a1a1a")
+# Palette matches the dashboard (navy + gold), tuned for print.
+NAVY = colors.HexColor("#0E1A2B")
+NAVY_SOFT = colors.HexColor("#1C2C44")
+GOLD = colors.HexColor("#B08D3C")
+INK = colors.HexColor("#1B2430")
+MUTED = colors.HexColor("#5B6778")
+RULE = colors.HexColor("#D5DBE3")
+ZEBRA = colors.HexColor("#F4F6F9")
+AMBER_BG = colors.HexColor("#FBF4E4")
+
+PAGE_W, PAGE_H = LETTER
+MARGIN = 0.75 * inch
+# SimpleDocTemplate's frame pads 6pt on each side; tables sized to the full
+# margin width would overhang the text column by that much.
+CONTENT_W = PAGE_W - 2 * MARGIN - 12
 
 styles = getSampleStyleSheet()
-styles.add(ParagraphStyle(name="MabuTitle", fontSize=20, leading=24, textColor=MABU_DARK, spaceAfter=4, fontName="Helvetica-Bold"))
-styles.add(ParagraphStyle(name="MabuSubtitle", fontSize=10, textColor=colors.grey, spaceAfter=14))
-styles.add(ParagraphStyle(name="MabuSection", fontSize=13, textColor=MABU_GREEN, spaceBefore=16, spaceAfter=6, fontName="Helvetica-Bold"))
-styles.add(ParagraphStyle(name="MabuBody", fontSize=10, leading=14))
-styles.add(ParagraphStyle(name="MabuMeta", fontSize=9, textColor=colors.grey))
+styles.add(ParagraphStyle(name="MabuKicker", fontName="Helvetica-Bold", fontSize=8, leading=10,
+                          textColor=GOLD, spaceAfter=4))
+styles.add(ParagraphStyle(name="MabuTitle", fontName="Helvetica-Bold", fontSize=20, leading=24,
+                          textColor=NAVY, spaceAfter=12))
+styles.add(ParagraphStyle(name="MabuSection", fontName="Helvetica-Bold", fontSize=11, leading=14,
+                          textColor=NAVY, spaceBefore=18, spaceAfter=4))
+styles.add(ParagraphStyle(name="MabuBody", fontName="Helvetica", fontSize=9.5, leading=13.5, textColor=INK))
+styles.add(ParagraphStyle(name="MabuLabel", fontName="Helvetica-Bold", fontSize=7.5, leading=10,
+                          textColor=MUTED))
+styles.add(ParagraphStyle(name="MabuCell", fontName="Helvetica", fontSize=8.5, leading=11, textColor=INK))
+styles.add(ParagraphStyle(name="MabuCellMono", fontName="Courier", fontSize=8, leading=11, textColor=INK))
+styles.add(ParagraphStyle(name="MabuHead", fontName="Helvetica-Bold", fontSize=7.5, leading=10,
+                          textColor=colors.white))
+styles.add(ParagraphStyle(name="MabuMeta", fontName="Helvetica", fontSize=8, leading=11, textColor=MUTED))
+styles.add(ParagraphStyle(name="MabuNotice", fontName="Helvetica", fontSize=8.5, leading=12, textColor=INK))
 
 
-def _entry_table(entries: list[dict]) -> Table:
-    rows = [["Date", "Author", "Summary"]]
-    for e in entries:
-        date = (e.get("date") or "")[:19].replace("T", " ")
-        rows.append([date, e.get("author", ""), (e.get("summary") or "")[:80]])
+def _p(text, style="MabuBody") -> Paragraph:
+    """Paragraph from untrusted text: escaped, newlines preserved."""
+    safe = escape(str(text if text is not None else "")).replace("\n", "<br/>")
+    return Paragraph(safe, styles[style])
 
-    table = Table(rows, colWidths=[1.4 * inch, 1.3 * inch, 3.8 * inch])
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), MABU_GREEN),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+
+def _fmt_date(value) -> str:
+    return (value or "")[:19].replace("T", " ") or "–"
+
+
+def _section(title: str) -> list:
+    return [
+        Paragraph(escape(title.upper()), styles["MabuSection"]),
+        HRFlowable(width="100%", color=GOLD, thickness=0.8, spaceBefore=0, spaceAfter=8),
+    ]
+
+
+def _grid_table(rows: list[list], col_widths: list[float], header: bool = True) -> Table:
+    table = Table(rows, colWidths=col_widths, repeatRows=1 if header else 0)
+    style = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f5f7f5")]),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, RULE),
+        ("BOX", (0, 0), (-1, -1), 0.5, RULE),
+    ]
+    if header:
+        style += [
+            ("BACKGROUND", (0, 0), (-1, 0), NAVY),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, ZEBRA]),
+        ]
+    else:
+        style += [("ROWBACKGROUNDS", (0, 0), (-1, -1), [colors.white, ZEBRA])]
+    table.setStyle(TableStyle(style))
+    return table
+
+
+def _head(*labels: str) -> list:
+    return [Paragraph(escape(label.upper()), styles["MabuHead"]) for label in labels]
+
+
+def _metadata_table(pairs: list[tuple[str, str, str]]) -> Table:
+    """Two-column label/value grid. pairs: (label, value, style)."""
+    cells = [[Paragraph(escape(label.upper()), styles["MabuLabel"]), _p(value, style)] for label, value, style in pairs]
+    half = (len(cells) + 1) // 2
+    left, right = cells[:half], cells[half:]
+    rows = []
+    for i in range(half):
+        l_cell = left[i]
+        r_cell = right[i] if i < len(right) else ["", ""]
+        rows.append(l_cell + r_cell)
+    w = CONTENT_W / 2
+    table = Table(rows, colWidths=[0.95 * inch, w - 0.95 * inch, 0.95 * inch, w - 0.95 * inch])
+    table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, RULE),
     ]))
     return table
 
 
-def _identifier_lines(entries: list[dict]) -> list[str]:
+def _identifier_table(entries: list[dict]) -> Table:
     agg = {"emails": set(), "phones": set(), "usernames": set(), "names": set(), "ips": set()}
     for e in entries:
         for key in agg:
-            agg[key].update(e.get(key, []))
-    lines = []
-    for label, key in [("Emails", "emails"), ("Phones", "phones"), ("Usernames", "usernames"),
-                        ("Names/Aliases", "names"), ("IPs", "ips")]:
+            agg[key].update(v for v in e.get(key, []) if v)
+    rows = [_head("Type", "Values")]
+    for label, key in [("Email addresses", "emails"), ("Phone numbers", "phones"), ("Usernames", "usernames"),
+                       ("Names / aliases", "names"), ("IP addresses", "ips")]:
         values = sorted(agg[key])
-        lines.append(f"<b>{label}:</b> {', '.join(values) if values else '(none)'}")
-    return lines
+        rows.append([_p(label, "MabuCell"), _p(", ".join(values) if values else "None recorded",
+                                                "MabuCellMono" if values else "MabuCell")])
+    return _grid_table(rows, [1.4 * inch, CONTENT_W - 1.4 * inch])
 
 
-def _case_flowables(case: dict) -> list:
-    flow = []
-    flow.append(Paragraph(case.get("title", "Untitled Case"), styles["MabuTitle"]))
-    flow.append(Paragraph(
-        f"Case ID: {case.get('case_id', '-')} &nbsp;|&nbsp; "
-        f"Status: {case.get('status', 'open').upper()} &nbsp;|&nbsp; "
-        f"Investigator: {case.get('investigator', '-')}",
-        styles["MabuSubtitle"],
-    ))
-    flow.append(HRFlowable(width="100%", color=MABU_GREEN, thickness=1))
+def _entry_summary_table(entries: list[dict]) -> Table:
+    rows = [_head("#", "Date (UTC)", "Author", "Summary")]
+    for i, e in enumerate(entries, start=1):
+        rows.append([
+            _p(str(i), "MabuCell"),
+            _p(_fmt_date(e.get("date")), "MabuCellMono"),
+            _p(e.get("author") or "–", "MabuCell"),
+            _p(e.get("summary") or "–", "MabuCell"),
+        ])
+    return _grid_table(rows, [0.35 * inch, 1.55 * inch, 1.2 * inch, CONTENT_W - 3.1 * inch])
 
-    flow.append(Paragraph("Case Metadata", styles["MabuSection"]))
-    flow.append(Paragraph(f"Created: {case.get('created', '-')}", styles["MabuMeta"]))
-    flow.append(Paragraph(f"Last updated: {case.get('updated', '-')}", styles["MabuMeta"]))
-    flow.append(Paragraph(f"Tags: {', '.join(case.get('tags', [])) or '(none)'}", styles["MabuMeta"]))
+
+def _entry_block(i: int, e: dict) -> KeepTogether:
+    rows = [
+        [Paragraph("SUMMARY", styles["MabuLabel"]), _p(e.get("summary") or "–")],
+        [Paragraph("FINDINGS", styles["MabuLabel"]), _p(e.get("findings") or "–")],
+    ]
+    sources = e.get("sources") or []
+    if sources:
+        rows.append([Paragraph("SOURCES", styles["MabuLabel"]), _p("\n".join(sources), "MabuCellMono")])
+    attachments = e.get("attachments") or []
+    if attachments:
+        rows.append([Paragraph("ATTACHMENTS", styles["MabuLabel"]),
+                     _p(", ".join(a.get("filename", "") for a in attachments), "MabuCell")])
+    body = Table(rows, colWidths=[1.0 * inch, CONTENT_W - 1.0 * inch - 14])
+    body.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    heading = Paragraph(
+        f"<b>Entry {i}</b> &nbsp;·&nbsp; {escape(_fmt_date(e.get('date')))} UTC &nbsp;·&nbsp; {escape(e.get('author') or 'Unknown author')}",
+        styles["MabuCell"],
+    )
+    frame = Table([[heading], [body]], colWidths=[CONTENT_W])
+    frame.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 0.5, RULE),
+        ("BACKGROUND", (0, 0), (-1, 0), ZEBRA),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.5, RULE),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    return KeepTogether([frame, Spacer(1, 8)])
+
+
+def _activity_table(activity: list[dict]) -> Table:
+    rows = [_head("Date (UTC)", "Action", "Detail")]
+    for a in activity:
+        action = (a.get("action") or "").replace("_", " ")
+        rows.append([
+            _p(_fmt_date(a.get("date")), "MabuCellMono"),
+            _p(action[:1].upper() + action[1:], "MabuCell"),
+            _p(a.get("detail") or "", "MabuCell"),
+        ])
+    return _grid_table(rows, [1.55 * inch, 1.4 * inch, CONTENT_W - 2.95 * inch])
+
+
+def _case_flowables(case: dict, kicker: str = "CASE REPORT") -> list:
+    flow = [
+        Paragraph(escape(kicker), styles["MabuKicker"]),
+        _p(case.get("title", "Untitled Case"), "MabuTitle"),
+        _metadata_table([
+            ("Case ID", case.get("case_id", "–"), "MabuCellMono"),
+            ("Status", (case.get("status") or "open").capitalize(), "MabuCell"),
+            ("Investigator", case.get("investigator") or "–", "MabuCell"),
+            ("Created", f"{_fmt_date(case.get('created'))} UTC", "MabuCellMono"),
+            ("Updated", f"{_fmt_date(case.get('updated'))} UTC", "MabuCellMono"),
+            ("Tags", ", ".join(case.get("tags", [])) or "None", "MabuCell"),
+        ]),
+    ]
 
     entries = case.get("entries", [])
-    flow.append(Paragraph("Aggregated Identifiers", styles["MabuSection"]))
-    for line in _identifier_lines(entries):
-        flow.append(Paragraph(line, styles["MabuBody"]))
+    flow += _section("Identifiers")
+    flow.append(_identifier_table(entries))
 
-    flow.append(Paragraph(f"Entries ({len(entries)})", styles["MabuSection"]))
+    flow += _section(f"Entries ({len(entries)})")
     if entries:
-        flow.append(_entry_table(entries))
-        flow.append(Spacer(1, 10))
+        flow.append(_entry_summary_table(entries))
+        flow.append(Spacer(1, 12))
         for i, e in enumerate(entries, start=1):
-            date = (e.get("date") or "")[:19].replace("T", " ")
-            flow.append(Paragraph(f"<b>Entry {i} — {date} by {e.get('author', '-')}</b>", styles["MabuBody"]))
-            flow.append(Paragraph(f"Summary: {e.get('summary') or '(none)'}", styles["MabuBody"]))
-            flow.append(Paragraph(f"Findings: {e.get('findings') or '(none)'}", styles["MabuBody"]))
-            sources = e.get("sources", [])
-            if sources:
-                flow.append(Paragraph("Sources: " + "; ".join(sources), styles["MabuMeta"]))
-            flow.append(Spacer(1, 8))
+            flow.append(_entry_block(i, e))
     else:
-        flow.append(Paragraph("(no entries yet)", styles["MabuBody"]))
+        flow.append(_p("No entries recorded.", "MabuMeta"))
 
     activity = case.get("activity_log", [])
     if activity:
-        flow.append(Paragraph("Activity Log", styles["MabuSection"]))
-        for a in activity:
-            date = (a.get("date") or "")[:19].replace("T", " ")
-            flow.append(Paragraph(f"[{date}] {a.get('action', '')}: {a.get('detail', '')}", styles["MabuMeta"]))
+        flow += _section("Activity log")
+        flow.append(_activity_table(activity))
 
     return flow
 
 
-def _footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont("Helvetica", 7.5)
-    canvas.setFillColor(colors.grey)
-    canvas.drawString(0.75 * inch, 0.5 * inch,
-                       f"MABU Research Platform — generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} — local-only, confidential")
-    canvas.drawRightString(LETTER[0] - 0.75 * inch, 0.5 * inch, f"Page {doc.page}")
-    canvas.restoreState()
+def _page_chrome(title: str):
+    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    x0, x1 = MARGIN + 6, PAGE_W - MARGIN - 6  # align with the frame's text column
+
+    def draw(canvas, doc):
+        canvas.saveState()
+        # Header band
+        band_h = 0.42 * inch
+        canvas.setFillColor(NAVY)
+        canvas.rect(0, PAGE_H - band_h, PAGE_W, band_h, stroke=0, fill=1)
+        canvas.setFillColor(GOLD)
+        canvas.rect(0, PAGE_H - band_h - 2, PAGE_W, 2, stroke=0, fill=1)
+        base = PAGE_H - band_h / 2 - 3
+        canvas.setFillColor(colors.white)
+        canvas.setFont("Helvetica-Bold", 10)
+        canvas.drawString(x0, base, "M A B U")
+        canvas.setFillColor(colors.HexColor("#C8A24A"))
+        canvas.setFont("Helvetica-Bold", 6.5)
+        canvas.drawString(x0 + 52, base + 1, "INTELLIGENCE RESEARCH PLATFORM")
+        canvas.setFillColor(colors.HexColor("#C9D3E0"))
+        canvas.setFont("Helvetica", 7)
+        canvas.drawRightString(x1, base + 1, f"{title.upper()}  ·  CONFIDENTIAL")
+        # Footer
+        canvas.setStrokeColor(RULE)
+        canvas.setLineWidth(0.5)
+        canvas.line(x0, 0.62 * inch, x1, 0.62 * inch)
+        canvas.setFillColor(MUTED)
+        canvas.setFont("Helvetica", 7)
+        canvas.drawString(x0, 0.45 * inch, f"Generated {generated} with MABU. Contains case data; handle as confidential.")
+        canvas.drawRightString(x1, 0.45 * inch, f"Page {doc.page}")
+        canvas.restoreState()
+
+    return draw
+
+
+def _doc(buf) -> SimpleDocTemplate:
+    return SimpleDocTemplate(buf, pagesize=LETTER,
+                             topMargin=0.95 * inch, bottomMargin=0.85 * inch,
+                             leftMargin=MARGIN, rightMargin=MARGIN,
+                             title="MABU report", author="MABU")
 
 
 def build_case_report_pdf(case: dict) -> bytes:
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=LETTER,
-                             topMargin=0.75 * inch, bottomMargin=0.75 * inch,
-                             leftMargin=0.75 * inch, rightMargin=0.75 * inch)
-    flow = _case_flowables(case)
-    doc.build(flow, onFirstPage=_footer, onLaterPages=_footer)
+    chrome = _page_chrome("Case report")
+    _doc(buf).build(_case_flowables(case), onFirstPage=chrome, onLaterPages=chrome)
     return buf.getvalue()
 
 
 def build_cluster_report_pdf(cases: list[dict]) -> bytes:
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=LETTER,
-                             topMargin=0.75 * inch, bottomMargin=0.75 * inch,
-                             leftMargin=0.75 * inch, rightMargin=0.75 * inch)
 
-    flow = []
-    flow.append(Paragraph("MABU Correlation Cluster Report", styles["MabuTitle"]))
-    flow.append(Paragraph(f"{len(cases)} linked case(s)", styles["MabuSubtitle"]))
-    flow.append(HRFlowable(width="100%", color=MABU_GREEN, thickness=1))
-
-    # Shared identifier summary across all cases in the cluster
+    # Identifiers present in every case of the cluster
     all_ids = [set() for _ in cases]
     for i, c in enumerate(cases):
         for e in c.get("entries", []):
             for key in ("emails", "usernames", "names", "ips", "phones"):
-                all_ids[i].update(v.lower() for v in e.get(key, []))
-
+                all_ids[i].update(v.lower() for v in e.get(key, []) if v)
     shared_across_all = set.intersection(*all_ids) if all_ids else set()
-    flow.append(Paragraph("Shared Across All Cases", styles["MabuSection"]))
-    flow.append(Paragraph(", ".join(sorted(shared_across_all)) or "(no single identifier common to every case)", styles["MabuBody"]))
+
+    flow = [
+        Paragraph("LINK ANALYSIS", styles["MabuKicker"]),
+        Paragraph("Correlation cluster report", styles["MabuTitle"]),
+        _metadata_table([
+            ("Cases", str(len(cases)), "MabuCell"),
+            ("Shared IDs", str(len(shared_across_all)), "MabuCell"),
+        ]),
+    ]
+
+    notice = Table([[_p("Cases in this cluster share one or more identifiers. A shared identifier is a potential "
+                        "connection, not confirmation that the cases involve the same individual. Verify "
+                        "independently before treating any link as established.", "MabuNotice")]],
+                   colWidths=[CONTENT_W])
+    notice.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), AMBER_BG),
+        ("LINEBEFORE", (0, 0), (0, -1), 2.5, GOLD),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    flow += [Spacer(1, 12), notice]
+
+    flow += _section("Identifiers shared across all cases")
+    flow.append(_p(", ".join(sorted(shared_across_all)) or "No single identifier is common to every case.",
+                   "MabuCellMono" if shared_across_all else "MabuBody"))
+
+    flow += _section("Cases in this cluster")
+    rows = [_head("Case", "Status", "Investigator", "Entries")]
+    for c in cases:
+        rows.append([
+            _p(c.get("title") or "Untitled Case", "MabuCell"),
+            _p((c.get("status") or "open").capitalize(), "MabuCell"),
+            _p(c.get("investigator") or "–", "MabuCell"),
+            _p(str(len(c.get("entries", []))), "MabuCell"),
+        ])
+    flow.append(_grid_table(rows, [CONTENT_W - 3.3 * inch, 0.9 * inch, 1.6 * inch, 0.8 * inch]))
 
     for case in cases:
         flow.append(PageBreak())
-        flow.extend(_case_flowables(case))
+        flow.extend(_case_flowables(case, kicker="CLUSTER MEMBER"))
 
-    doc.build(flow, onFirstPage=_footer, onLaterPages=_footer)
+    chrome = _page_chrome("Cluster report")
+    _doc(buf).build(flow, onFirstPage=chrome, onLaterPages=chrome)
     return buf.getvalue()
