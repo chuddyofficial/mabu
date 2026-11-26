@@ -29,6 +29,7 @@ mabu-dashboard/
 │   ├── mabu_media.py         # Image EXIF/GPS metadata extraction
 │   ├── mabu_report.py        # PDF report generation (reportlab)
 │   └── requirements.txt
+├── start.sh                   # One-command local start: venv, deps, first-run setup, server
 ├── setup.py                   # Full installer: deps, keys, admin account, domain config
 ├── migrate_vault.py            # One-time v1 -> v2 case-schema migration (with backups)
 ├── mabu-reader.py              # Standalone CLI for .mabu files
@@ -63,6 +64,14 @@ The dashboard uses a CRT-terminal aesthetic — animated boot sequence (skippabl
 
 - Python 3.10+
 - A modern browser
+
+## Quick Start (Linux / macOS)
+
+```bash
+./start.sh
+```
+
+Then open **http://127.0.0.1:5057** in your browser. That one command creates a `venv/`, installs dependencies, runs first-time setup (asks for an admin username + password) only if it hasn't been done, and starts the server. Run it the same way every time; stop with Ctrl+C. The sections below cover each step individually.
 
 ## First-time Setup
 
@@ -109,7 +118,7 @@ cd api
 python mabu-server.py
 ```
 
-The server listens on `http://127.0.0.1:5057`. Open `index.html` in a browser — the login screen appears first; log in with the admin account you created.
+The server listens on `http://127.0.0.1:5057` and serves the dashboard itself — open **http://127.0.0.1:5057** in a browser (not `index.html` directly from disk: browsers won't keep the login cookie for a `file://` page, so every request after login would fail). The login screen appears first; log in with the admin account you created.
 
 ### Migrating older vault data
 

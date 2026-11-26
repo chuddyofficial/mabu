@@ -21,7 +21,7 @@ import socket
 from datetime import datetime, timezone
 from functools import wraps
 
-from flask import Flask, jsonify, request, session, Response
+from flask import Flask, jsonify, request, session, Response, send_from_directory
 from flask_cors import CORS
 from cryptography.fernet import InvalidToken
 
@@ -72,6 +72,27 @@ def _set_security_headers(resp):
     if PUBLIC_ORIGIN:
         resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return resp
+
+
+# ---------------------------------------------------------------------------
+# Dashboard frontend (local use)
+# ---------------------------------------------------------------------------
+# Serving the dashboard from the API's own origin keeps the session cookie
+# first-party. A page opened via file:// can log in, but browsers refuse to
+# store a SameSite=Lax cookie for it, so every request after login 401s.
+# Behind nginx these routes are never reached (nginx serves the files itself).
+# Only index.html and these three directories are exposed — never config/ or vault/.
+FRONTEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+@app.get("/")
+def dashboard_index():
+    return send_from_directory(FRONTEND_DIR, "index.html")
+
+
+@app.get("/<any(css, js, assets):subdir>/<path:filename>")
+def dashboard_static(subdir, filename):
+    return send_from_directory(os.path.join(FRONTEND_DIR, subdir), filename)
 
 
 # ---------------------------------------------------------------------------
@@ -936,6 +957,7 @@ if __name__ == "__main__":
     print("  MABU Server starting")
     print(f"  Vault directory: {VAULT_DIR}")
     print("  Listening on http://127.0.0.1:5057")
+    print("  Open the dashboard: http://127.0.0.1:5057/")
     print(f"  Debug mode: {'ON (local dev only)' if debug_mode else 'OFF (public origin configured)'}")
     print("=" * 60)
     app.run(host="127.0.0.1", port=5057, debug=debug_mode)
