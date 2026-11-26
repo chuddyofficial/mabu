@@ -31,6 +31,7 @@ mabu-dashboard/
 │   ├── mabu_report.py        # PDF report generation (reportlab)
 │   └── requirements.txt
 ├── start.sh                   # One-command local start: venv, deps, first-run setup, server
+├── deploy.sh                  # One-command production deploy: nginx, systemd, HTTPS for your domain
 ├── setup.py                   # Full installer: deps, keys, admin account, domain config
 ├── migrate_vault.py            # One-time v1 -> v2 case-schema migration (with backups)
 ├── mabu-reader.py              # Standalone CLI for .mabu files
@@ -180,6 +181,18 @@ Two standalone tools for working with `.mabu` files outside the dashboard — a 
 
 This assumes a fresh Ubuntu 22.04/24.04 server and a domain (or subdomain) pointed at its IP already.
 
+### One command
+
+From your checkout on the server:
+
+```bash
+sudo ./deploy.sh mabu.yourdomain.com you@yourdomain.com
+```
+
+`deploy.sh` does everything in the steps below: installs nginx/certbot/Python packages, creates `venv/` and installs dependencies, runs `setup.py` (it asks for an admin username and password only if no account exists yet), installs the generated nginx site and systemd service, starts MABU and confirms it answers, opens the firewall if `ufw` is active, checks that the domain actually resolves to this server, and requests the HTTPS certificate. The service runs as the user who invoked `sudo` and owns the checkout. Re-run the same command after every `git pull` to apply updates. The email is for Let's Encrypt expiry notices; leave it out to be asked interactively.
+
+The manual steps below do the same thing one at a time.
+
 ### 1. Server prep
 
 ```bash
@@ -235,7 +248,7 @@ The generated nginx config proxies **everything** to `mabu-server.py`, which ser
 
 ### 5. Updating via git pull
 
-Since the repo is public, updates are a simple pull + restart:
+If you deployed with `deploy.sh`, `git pull && sudo ./deploy.sh mabu.yourdomain.com` applies an update. Otherwise, updates are a pull + restart:
 
 ```bash
 cd /home/mabu/mabu
