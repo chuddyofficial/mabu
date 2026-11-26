@@ -28,19 +28,23 @@ from PySide6.QtWidgets import (
 )
 
 MABU_MAGIC = b"MABU"
-MABU_VERSION = 1
+# Container versions this reader understands (matches api/mabu_format.py).
+MABU_SUPPORTED_VERSIONS = (1, 2)
 
-MABU_GREEN = "#00ff66"
-MABU_GREEN_BRIGHT = "#5dffa0"
-MABU_GREEN_DIM = "#0e5c28"
-MABU_BORDER = "#1f7a38"
-MABU_BG = "#030905"
-MABU_PANEL = "#050f08"
-MABU_INPUT_BG = "#010601"
-MABU_TEXT = "#baffc9"
-MABU_TEXT_DIM = "#6fbf8a"
-MABU_RED = "#ff3b5c"
-MABU_AMBER = "#ffb000"
+# Same palette as the web dashboard (css/mabu-styles.css).
+MABU_BG = "#0A111B"
+MABU_PANEL = "#111B29"
+MABU_INPUT_BG = "#0C1520"
+MABU_BORDER = "#2A3D57"
+MABU_TEXT = "#E4EAF2"
+MABU_TEXT_DIM = "#A7B4C6"
+MABU_TEXT_FAINT = "#6E7F98"
+MABU_PRIMARY = "#4D8DF7"
+MABU_PRIMARY_HOVER = "#6AA2FF"
+MABU_GOLD = "#C8A24A"
+MABU_GREEN = "#3DBE8B"
+MABU_RED = "#E5534B"
+MABU_AMBER = "#E5A93B"
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +81,7 @@ def parse_mabu_file(data: bytes, key: bytes) -> dict:
         raise ValueError("Not a valid MABU file (bad magic header)")
 
     version = data[4]
-    if version != MABU_VERSION:
+    if version not in MABU_SUPPORTED_VERSIONS:
         raise ValueError(f"Unsupported MABU file version: {version}")
 
     token_len = int.from_bytes(data[5:13], "big")
@@ -114,92 +118,106 @@ MABU_STYLESHEET = f"""
 QWidget {{
     background-color: {MABU_BG};
     color: {MABU_TEXT};
-    font-family: "Cascadia Code", "Consolas", monospace;
-    font-size: 12.5px;
+    font-family: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
 }}
 
 QLabel#titleLabel {{
-    color: {MABU_GREEN};
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: 2px;
+    color: {MABU_TEXT};
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 5px;
 }}
 
 QLabel#subLabel {{
-    color: {MABU_TEXT_DIM};
-    font-size: 11px;
+    color: {MABU_GOLD};
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
 }}
 
-QLabel.fieldLabel {{
+QLabel[class="fieldLabel"] {{
+    color: {MABU_TEXT_DIM};
+    font-size: 12px;
+    font-weight: 500;
+}}
+
+QLabel[class="sectionLabel"] {{
     color: {MABU_TEXT_DIM};
     font-size: 11px;
     font-weight: 600;
+    letter-spacing: 2px;
 }}
 
 QFrame#panel {{
     background-color: {MABU_PANEL};
-    border: 1px solid {MABU_BORDER};
-    border-radius: 6px;
+    border: 1px solid #1E2D42;
+    border-radius: 10px;
+}}
+
+QFrame#panel QLabel {{
+    background-color: transparent;
 }}
 
 QLineEdit {{
     background-color: {MABU_INPUT_BG};
     border: 1px solid {MABU_BORDER};
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 8px 10px;
     color: {MABU_TEXT};
-    selection-background-color: {MABU_GREEN};
-    selection-color: #000000;
+    selection-background-color: {MABU_PRIMARY};
+    selection-color: #ffffff;
 }}
 
 QLineEdit:focus {{
-    border: 1px solid {MABU_GREEN};
+    border: 1px solid {MABU_PRIMARY};
 }}
 
 QPushButton {{
-    background-color: transparent;
-    border: 1px solid {MABU_GREEN_DIM};
-    border-radius: 4px;
-    color: {MABU_GREEN};
+    background-color: {MABU_PRIMARY};
+    border: 1px solid {MABU_PRIMARY};
+    border-radius: 6px;
+    color: #ffffff;
     padding: 9px 18px;
-    font-weight: 600;
+    font-weight: 500;
 }}
 
 QPushButton:hover {{
-    background-color: rgba(0, 255, 102, 0.10);
-    border: 1px solid {MABU_GREEN};
+    background-color: {MABU_PRIMARY_HOVER};
+    border: 1px solid {MABU_PRIMARY_HOVER};
 }}
 
 QPushButton:pressed {{
-    background-color: rgba(0, 255, 102, 0.18);
+    background-color: #3B78E2;
 }}
 
 QPushButton#browseBtn {{
+    background-color: #142132;
     border: 1px solid {MABU_BORDER};
-    color: {MABU_TEXT_DIM};
+    color: {MABU_TEXT};
     padding: 8px 14px;
 }}
 
 QPushButton#browseBtn:hover {{
-    border: 1px solid {MABU_GREEN_DIM};
-    color: {MABU_GREEN};
+    background-color: #1A2A3F;
+    border: 1px solid #3A5272;
 }}
 
 QTextEdit#readerBox {{
-    background-color: #010601;
-    border: 1px solid {MABU_BORDER};
-    border-radius: 6px;
-    color: {MABU_GREEN_BRIGHT};
-    padding: 12px;
+    background-color: #0D1622;
+    border: 1px solid #1E2D42;
+    border-radius: 10px;
+    color: #C9D6E8;
+    padding: 14px;
     font-size: 12px;
 }}
 
 QLabel#statusLabel {{
-    font-size: 11.5px;
+    font-size: 12px;
 }}
 
 QScrollBar:vertical {{
-    background: {MABU_BG};
+    background: transparent;
     width: 10px;
 }}
 
@@ -210,7 +228,7 @@ QScrollBar::handle:vertical {{
 }}
 
 QScrollBar::handle:vertical:hover {{
-    background: {MABU_GREEN_DIM};
+    background: #3A5272;
 }}
 """
 
@@ -230,9 +248,9 @@ class MabuReaderApp(QWidget):
 
         # Header
         header = QVBoxLayout()
-        title = QLabel("MABU READER")
+        title = QLabel("MABU")
         title.setObjectName("titleLabel")
-        sub = QLabel("local .mabu file viewer — no external calls")
+        sub = QLabel("CASE READER  ·  OFFLINE, NO NETWORK ACCESS")
         sub.setObjectName("subLabel")
         header.addWidget(title)
         header.addWidget(sub)
@@ -245,33 +263,33 @@ class MabuReaderApp(QWidget):
         file_layout.setContentsMargins(18, 16, 18, 16)
         file_layout.setSpacing(10)
 
-        file_label = QLabel("> select .mabu file")
+        file_label = QLabel("Case file (.mabu)")
         file_label.setProperty("class", "fieldLabel")
         file_layout.addWidget(file_label)
 
         file_row = QHBoxLayout()
         self.file_input = QLineEdit()
-        self.file_input.setPlaceholderText("no file selected")
+        self.file_input.setPlaceholderText("No file selected")
         self.file_input.setReadOnly(True)
-        browse_btn = QPushButton("browse...")
+        browse_btn = QPushButton("Browse…")
         browse_btn.setObjectName("browseBtn")
         browse_btn.clicked.connect(self.on_browse)
         file_row.addWidget(self.file_input, 1)
         file_row.addWidget(browse_btn)
         file_layout.addLayout(file_row)
 
-        pass_label = QLabel("> passphrase (leave blank to use default vault key)")
+        pass_label = QLabel("Passphrase (leave blank to use the vault key)")
         pass_label.setProperty("class", "fieldLabel")
         file_layout.addWidget(pass_label)
 
         self.passphrase_input = QLineEdit()
-        self.passphrase_input.setPlaceholderText("passphrase (optional)")
+        self.passphrase_input.setPlaceholderText("Optional")
         self.passphrase_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.passphrase_input.returnPressed.connect(self.on_decrypt)
         file_layout.addWidget(self.passphrase_input)
 
         action_row = QHBoxLayout()
-        decrypt_btn = QPushButton("decrypt_and_view()")
+        decrypt_btn = QPushButton("Decrypt and view")
         decrypt_btn.clicked.connect(self.on_decrypt)
         self.status_label = QLabel("")
         self.status_label.setObjectName("statusLabel")
@@ -282,15 +300,15 @@ class MabuReaderApp(QWidget):
         root.addWidget(file_panel)
 
         # Reader output panel
-        reader_label = QLabel("> stdout")
-        reader_label.setProperty("class", "fieldLabel")
+        reader_label = QLabel("CONTENTS")
+        reader_label.setProperty("class", "sectionLabel")
         root.addWidget(reader_label)
 
         self.reader_box = QTextEdit()
         self.reader_box.setObjectName("readerBox")
         self.reader_box.setReadOnly(True)
-        self.reader_box.setPlainText("nothing decrypted yet.")
-        mono = QFont("Cascadia Code")
+        self.reader_box.setPlainText("Nothing decrypted yet.")
+        mono = QFont("IBM Plex Mono")
         mono.setStyleHint(QFont.StyleHint.Monospace)
         self.reader_box.setFont(mono)
         root.addWidget(self.reader_box, 1)
@@ -313,77 +331,92 @@ class MabuReaderApp(QWidget):
     def on_decrypt(self):
         path = self.file_input.text().strip()
         if not path:
-            self.set_status("select a file first.", MABU_AMBER)
+            self.set_status("Select a case file first.", MABU_AMBER)
             return
         if not os.path.isfile(path):
-            self.set_status("file not found.", MABU_RED)
+            self.set_status("File not found.", MABU_RED)
             return
 
         passphrase = self.passphrase_input.text() or None
 
-        self.set_status("decrypting...", MABU_TEXT_DIM)
+        self.set_status("Decrypting…", MABU_TEXT_DIM)
         QApplication.processEvents()
 
         try:
             record = decrypt_mabu_file(path, passphrase)
         except InvalidToken:
-            self.set_status("error: wrong passphrase or corrupted file", MABU_RED)
+            self.set_status("Wrong passphrase, or the file is corrupted.", MABU_RED)
             self.reader_box.setPlainText("decryption failed. check the passphrase and try again.")
             return
         except ValueError as e:
-            self.set_status(f"error: {e}", MABU_RED)
+            self.set_status(f"Could not open file: {e}", MABU_RED)
             self.reader_box.setPlainText(str(e))
             return
         except Exception as e:
-            self.set_status(f"unexpected error: {e}", MABU_RED)
+            self.set_status(f"Unexpected error: {e}", MABU_RED)
             return
 
-        self.set_status("decrypted successfully.", MABU_GREEN)
+        self.set_status("Decrypted.", MABU_GREEN)
         self.reader_box.setPlainText(self._format_record(path, record))
 
     @staticmethod
     def _format_record(path: str, record: dict) -> str:
-        def field(label, value):
+        """Plain-text view of a case. Handles schema 2 (cases with entries)
+        and legacy schema 1 (one flat note)."""
+        rule = "─" * 64
+
+        def val(value):
             if isinstance(value, list):
-                value = ", ".join(str(v) for v in value) if value else "(none)"
-            return f"{label:<14} {value if value not in (None, '') else '(none)'}"
+                value = ", ".join(str(v) for v in value if v)
+            return value if value not in (None, "") else "—"
+
+        def field(label, value):
+            return f"  {label:<15}{val(value)}"
+
+        def when(value):
+            return (value or "")[:19].replace("T", " ") or "—"
 
         lines = [
-            "=" * 62,
-            f" {record.get('title', 'Untitled')}",
-            "=" * 62,
-            field("file:", os.path.basename(path)),
-            field("date:", record.get("date")),
-            field("investigator:", record.get("investigator")),
-            field("tags:", record.get("tags", [])),
-            "",
-            "SUMMARY",
-            "-" * 62,
-            record.get("summary") or "(none)",
-            "",
-            "FINDINGS",
-            "-" * 62,
-            record.get("findings") or "(none)",
-            "",
-            "IDENTIFIERS",
-            "-" * 62,
-            field("emails:", record.get("emails", [])),
-            field("phones:", record.get("phones", [])),
-            field("usernames:", record.get("usernames", [])),
-            field("names:", record.get("names", [])),
-            field("ips:", record.get("ips", [])),
-            "",
-            "SOURCES",
-            "-" * 62,
+            str(record.get("title") or "Untitled case"),
+            rule,
+            field("File", os.path.basename(path)),
+            field("Case ID", record.get("case_id")),
+            field("Status", str(record.get("status") or "").capitalize()),
+            field("Investigator", record.get("investigator")),
+            field("Created (UTC)", when(record.get("created") or record.get("date"))),
+            field("Updated (UTC)", when(record.get("updated"))),
+            field("Tags", record.get("tags", [])),
         ]
-        sources = record.get("sources", [])
-        if sources:
-            lines.extend(f"  - {s}" for s in sources)
-        else:
-            lines.append("(none)")
+
+        # Schema 1 files are a single flat note; present them as one entry.
+        entries = record.get("entries")
+        if entries is None:
+            entries = [record]
+
+        for i, e in enumerate(entries, start=1):
+            lines += [
+                "",
+                f"ENTRY {i}  ·  {when(e.get('date'))} UTC  ·  {e.get('author') or record.get('investigator') or 'Unknown author'}",
+                rule,
+                "  Summary",
+                f"    {val(e.get('summary'))}",
+                "  Findings",
+            ]
+            lines += [f"    {ln}" for ln in str(val(e.get("findings"))).splitlines()] or ["    —"]
+            lines += [
+                field("Emails", e.get("emails", [])),
+                field("Phones", e.get("phones", [])),
+                field("Usernames", e.get("usernames", [])),
+                field("Names", e.get("names", [])),
+                field("IP addresses", e.get("ips", [])),
+            ]
+            for src in e.get("sources", []) or []:
+                lines.append(f"  Source         {src}")
+            attachments = e.get("attachments") or []
+            if attachments:
+                lines.append(field("Attachments", [a.get("filename", "") for a in attachments]))
 
         return "\n".join(lines)
-
 
 def main():
     app = QApplication(sys.argv)
@@ -392,6 +425,9 @@ def main():
     palette = QPalette()
     palette.setColor(QPalette.ColorRole.Window, QColor(MABU_BG))
     palette.setColor(QPalette.ColorRole.WindowText, QColor(MABU_TEXT))
+    palette.setColor(QPalette.ColorRole.Base, QColor(MABU_INPUT_BG))
+    palette.setColor(QPalette.ColorRole.Text, QColor(MABU_TEXT))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(MABU_PRIMARY))
     app.setPalette(palette)
 
     window = MabuReaderApp()

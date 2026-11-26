@@ -86,7 +86,8 @@ def banner():
 # ---------------------------------------------------------------------------
 
 MABU_MAGIC = b"MABU"
-MABU_VERSION = 1
+# Container versions this reader understands (matches api/mabu_format.py).
+MABU_SUPPORTED_VERSIONS = (1, 2)
 
 
 def default_key_path() -> str:
@@ -122,7 +123,7 @@ def parse_mabu_file(data: bytes, passphrase: str | None) -> dict:
         raise ValueError("Not a valid MABU file (bad magic header)")
 
     version = data[4]
-    if version != MABU_VERSION:
+    if version not in MABU_SUPPORTED_VERSIONS:
         raise ValueError(f"Unsupported MABU file version: {version}")
 
     token_len = int.from_bytes(data[5:13], "big")
@@ -139,7 +140,35 @@ def parse_mabu_file(data: bytes, passphrase: str | None) -> dict:
     except InvalidToken:
         raise ValueError("Decryption failed — wrong passphrase or corrupted file")
 
-    return json.loads(payload.decode("utf-8"))
+    return flatten_case(json.loads(payload.decode("utf-8")))
+
+
+def flatten_case(record: dict) -> dict:
+    """Schema-2 cases hold a list of entries; the views in this tool expect
+    schema 1's single flat note. Fold the entries into that shape: identifiers
+    are unioned, findings are concatenated under per-entry headings, and the
+    summary comes from the most recent entry. Schema-1 records pass through."""
+    entries = record.get("entries")
+    if entries is None:
+        return record
+
+    flat = dict(record)
+    flat["date"] = record.get("updated") or record.get("created")
+    for key in ("emails", "phones", "usernames", "names", "ips", "sources"):
+        seen = []
+        for e in entries:
+            for v in e.get(key, []) or []:
+                if v and v not in seen:
+                    seen.append(v)
+        flat[key] = seen
+    flat["summary"] = (entries[-1].get("summary") if entries else "") or ""
+    blocks = []
+    for i, e in enumerate(entries, start=1):
+        head = f"[Entry {i} · {(e.get('date') or '')[:19].replace('T', ' ')} · {e.get('author') or 'unknown'}]"
+        body = e.get("findings") or e.get("summary") or ""
+        blocks.append(f"{head} {body}".strip())
+    flat["findings"] = "\n".join(blocks)
+    return flat
 
 
 def read_mabu_file(path: str, passphrase: str | None) -> dict:
@@ -156,7 +185,9 @@ def read_mabu_file(path: str, passphrase: str | None) -> dict:
 def wrap(text: str, width: int = 70, indent: str = "    ") -> str:
     if not text:
         return indent + c("(none)", C.GRAY)
-    lines = textwrap.wrap(text, width=width) or [""]
+    lines = []
+    for para in text.splitlines() or [""]:
+        lines.extend(textwrap.wrap(para, width=width) or [""])
     return "\n".join(indent + line for line in lines)
 
 
