@@ -32,6 +32,8 @@ mabu-dashboard/
 │   └── requirements.txt
 ├── start.sh                   # One-command local start: venv, deps, first-run setup, server
 ├── deploy.sh                  # One-command production deploy: nginx, systemd, HTTPS for your domain
+├── Deploy MABU.bat            # Windows: double-click to run deploy.sh on your server over SSH
+├── deploy-windows.ps1         # the PowerShell behind Deploy MABU.bat
 ├── setup.py                   # Full installer: deps, keys, admin account, domain config
 ├── migrate_vault.py            # One-time v1 -> v2 case-schema migration (with backups)
 ├── mabu-reader.py              # Standalone CLI for .mabu files
@@ -190,6 +192,10 @@ sudo ./deploy.sh mabu.yourdomain.com you@yourdomain.com
 ```
 
 `deploy.sh` does everything in the steps below: installs nginx/certbot/Python packages, creates `venv/` and installs dependencies, runs `setup.py` (it asks for an admin username and password only if no account exists yet), installs the generated nginx site and systemd service, starts MABU and confirms it answers, opens the firewall if `ufw` is active, checks that the domain actually resolves to this server, and requests the HTTPS certificate. The service runs as the user who invoked `sudo` and owns the checkout. Re-run the same command after every `git pull` to apply updates. The email is for Let's Encrypt expiry notices; leave it out to be asked interactively.
+
+### From a Windows PC
+
+Double-click **`Deploy MABU.bat`** in your Windows copy of the repo. It asks for your domain, the server's address, your SSH username, an optional email, and where MABU lives on the server. Press Enter to accept the value in brackets; answers are remembered in `deploy-windows.settings.json`, so later runs are just Enter. It then connects with the SSH client built into Windows 10/11, installs git on the server if needed, downloads MABU there (or updates the existing copy to the same branch you're on), runs `deploy.sh`, and opens `https://<your domain>` when it finishes. You type your SSH password, your sudo password and, the first time only, a MABU admin username and password into the same window. If Windows says SSH is missing, turn on **Settings › System › Optional features › OpenSSH Client**. `deploy-windows.ps1 -DryRun` prints the exact command it would run on the server without connecting.
 
 The manual steps below do the same thing one at a time.
 

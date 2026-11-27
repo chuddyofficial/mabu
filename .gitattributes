@@ -1,0 +1,6 @@
+# Keep Windows launchers in CRLF and shell scripts in LF regardless of
+# the checkout platform (a CRLF deploy.sh fails on the server).
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.vbs text eol=crlf
+*.sh  text eol=lf

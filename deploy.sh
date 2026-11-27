@@ -59,7 +59,7 @@ systemctl enable mabu >/dev/null 2>&1
 systemctl restart mabu
 
 for _ in $(seq 1 30); do
-  curl -fsS -o /dev/null http://127.0.0.1:5057/api/health && break
+  curl -fs -o /dev/null http://127.0.0.1:5057/api/health 2>/dev/null && break
   sleep 1
 done
 if ! curl -fsS -o /dev/null http://127.0.0.1:5057/api/health; then
@@ -75,7 +75,7 @@ fi
 
 # Let's Encrypt validates over the internet, so only try when the domain
 # actually resolves to this machine.
-SERVER_IP="$(curl -fsS -4 --max-time 10 https://api.ipify.org || true)"
+SERVER_IP="$(curl -fs -4 --max-time 10 https://api.ipify.org 2>/dev/null || true)"
 DOMAIN_IP="$(getent ahostsv4 "$DOMAIN" | awk 'NR==1 {print $1}' || true)"
 if [ -n "$SERVER_IP" ] && [ -n "$DOMAIN_IP" ] && [ "$SERVER_IP" != "$DOMAIN_IP" ]; then
   echo "[mabu] $DOMAIN points to $DOMAIN_IP, but this server is $SERVER_IP." >&2
